@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.6.0+11
 
 environment:
   sdk: ^3.10.8
@@ -31,8 +31,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
   flutter_localizations:
     sdk: flutter
 
@@ -40,6 +38,9 @@ dependencies:
   dio: ^5.11.0
   get: ^4.7.3
   shared_preferences: ^2.5.5
+  web: ^1.1.1
+  webview_flutter: ^4.14.1
+  video_player: ^2.11.1
 
 dev_dependencies:
   flutter_test:
@@ -67,9 +68,11 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/logo.png
-    - assets/images/logo_transparente.png
+    - assets/images/paty.png
+    - assets/images/patyTransparente.png
+    - assets/images/poty.png
     - assets/images/splash.png
+    - assets/videos/paty.mp4
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -102,36 +105,45 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 flutter_native_splash:
-  color: "#FFFFFF"
-  color_dark: "#FFFFFF"
+  color: "#0F723C"
+  color_dark: "#0F723C"
+
+  image: assets/images/splash.png
+  image_dark: assets/images/splash.png
 
   android: true
   ios: true
   web: true
 
-  fullscreen: false
+  fullscreen: true
 
   android_12:
-    color: "#FFFFFF"
-    color_dark: "#FFFFFF"
+    color: "#0F723C"
+    color_dark: "#0F723C"
+
+    image: assets/images/splash.png
+    image_dark: assets/images/splash.png
+
+    icon_background_color: "#0F723C"
+    icon_background_color_dark: "#0F723C"
 
 flutter_launcher_icons:
   android: true
   ios: true
 
-  image_path: assets/images/logo.png
+  image_path: assets/images/paty.png
 
   min_sdk_android: 21
 
-  adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: assets/images/logo.png
+  adaptive_icon_background: "#0F723C"
+  adaptive_icon_foreground: assets/images/paty.png
   adaptive_icon_foreground_inset: 22
 
   remove_alpha_ios: true
-  background_color_ios: "#FFFFFF"
+  background_color_ios: "#0F723C"
 
   web:
     generate: true
-    image_path: assets/images/logo.png
-    background_color: "#FFFFFF"
-    theme_color: "#FFFFFF"
+    image_path: assets/images/paty.png
+    background_color: "#0F723C"
+    theme_color: "#0F723C"

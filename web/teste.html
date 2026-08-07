@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="referrer" content="origin">
+
+    <meta http-equiv="Permissions-Policy" content="unload=()">
+
+    <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    >
+
+    <title>Paty - Assistente Virtual</title>
+
+    <script>
+        (function () {
+          const parametros =
+            new URLSearchParams(window.location.search);
+
+          const plataforma =
+            parametros.get('platform');
+
+          const mobile =
+            parametros.get('mobile') === 'true' ||
+            plataforma === 'mobile';
+
+          document.documentElement.classList.add(
+            mobile ? 'suri-mobile' : 'suri-web'
+          );
+
+          console.log(
+            '[SURI] Plataforma identificada:',
+            mobile ? 'mobile' : 'web'
+          );
+        })();
+    </script>
+
+    <style>
+        /*
+         * ==========================================================
+         * CONFIGURAÇÕES GERAIS
+         * ==========================================================
+         */
+
+        * {
+          box-sizing: border-box;
+        }
+
+        html,
+        body {
+          width: 100%;
+          height: 100%;
+
+          margin: 0;
+          padding: 0;
+
+          overflow: hidden;
+
+          background: transparent !important;
+          background-color: transparent !important;
+          background-image: none !important;
+
+          font-family:
+            Arial,
+            Helvetica,
+            sans-serif;
+        }
+
+        html.suri-web,
+        html.suri-web body,
+        html.suri-mobile,
+        html.suri-mobile body {
+          background: transparent !important;
+          background-color: transparent !important;
+          background-image: none !important;
+        }
+
+        /*
+         * Mensagem exibida durante a inicialização.
+         */
+
+        #status-suri {
+          position: fixed;
+
+          top: 12px;
+          left: 12px;
+
+          z-index: 2147483647;
+
+          padding: 9px 14px;
+
+          border-radius: 8px;
+
+          background: rgba(15, 23, 42, 0.88);
+          color: #ffffff;
+
+          font-size: 12px;
+          font-weight: 600;
+
+          pointer-events: none;
+
+          box-shadow:
+            0 12px 30px rgba(15, 23, 42, 0.20);
+        }
+
+        /*
+         * No mobile, o Flutter já possui
+         * sua própria tela de carregamento.
+         */
+
+        html.suri-mobile #status-suri {
+          display: none !important;
+        }
+
+        /*
+         * ==========================================================
+         * CONFIGURAÇÕES EXCLUSIVAS DO MOBILE
+         * ==========================================================
+         */
+
+        html.suri-mobile {
+          /*
+           * Dimensões responsivas da máscara que cobre
+           * o X interno da SURI.
+           */
+          --suri-close-mask-size:
+            clamp(38px, 10.5vw, 46px);
+
+          --suri-close-mask-top:
+            clamp(8px, 2.8vw, 13px);
+
+          --suri-close-mask-right:
+            clamp(5px, 2.2vw, 10px);
+
+          /*
+           * Cor do cabeçalho interno "BEBIDAS POTY".
+           */
+          --suri-header-background:
+            #e8edef;
+        }
+
+        /*
+         * Mantém o launcher disponível enquanto fechado,
+         * para que o JavaScript consiga abrir o chat.
+         *
+         * Quando o launcher muda para "open", ele fica
+         * invisível.
+         */
+
+        html.suri-mobile .__talkjs_launcher.open {
+          opacity: 0 !important;
+          visibility: hidden !important;
+
+          pointer-events: none !important;
+
+          border: 0 !important;
+          outline: 0 !important;
+
+          background: transparent !important;
+
+          box-shadow: none !important;
+        }
+
+        /*
+         * Mantém o popup abaixo da máscara.
+         */
+
+        html.suri-mobile .__talkjs_popup,
+        html.suri-mobile iframe[src*="chatbotmaker"],
+        html.suri-mobile iframe[src*="talkjs"] {
+          z-index: 2147483645 !important;
+        }
+
+        /*
+         * Máscara responsiva que cobre somente o segundo X.
+         *
+         * Esse X pertence ao conteúdo interno do chatbot.
+         */
+
+        html.suri-mobile body::after {
+          content: "";
+
+          position: fixed !important;
+
+          top:
+            calc(
+              var(--suri-close-mask-top) +
+              env(safe-area-inset-top, 0px)
+            ) !important;
+
+          right:
+            calc(
+              var(--suri-close-mask-right) +
+              env(safe-area-inset-right, 0px)
+            ) !important;
+
+          width:
+            var(--suri-close-mask-size) !important;
+
+          height:
+            var(--suri-close-mask-size) !important;
+
+          margin: 0 !important;
+          padding: 0 !important;
+
+          border: 0 !important;
+          outline: 0 !important;
+
+          border-radius: 50% !important;
+
+          background:
+            var(--suri-header-background) !important;
+
+          background-color:
+            var(--suri-header-background) !important;
+
+          box-shadow: none !important;
+
+          z-index: 2147483647 !important;
+
+          display: block !important;
+
+          pointer-events: auto !important;
+          touch-action: none !important;
+        }
+
+        /*
+         * Celulares muito estreitos.
+         */
+
+        @media (max-width: 360px) {
+          html.suri-mobile {
+            --suri-close-mask-size: 38px;
+            --suri-close-mask-top: 8px;
+            --suri-close-mask-right: 5px;
+          }
+        }
+
+        /*
+         * Celulares comuns.
+         */
+
+        @media
+          (min-width: 361px)
+          and
+          (max-width: 480px) {
+          html.suri-mobile {
+            --suri-close-mask-size:
+              clamp(40px, 10.5vw, 46px);
+
+            --suri-close-mask-top:
+              clamp(9px, 2.8vw, 13px);
+
+            --suri-close-mask-right:
+              clamp(6px, 2.2vw, 10px);
+          }
+        }
+
+        /*
+         * Celulares grandes e tablets.
+         */
+
+        @media (min-width: 481px) {
+          html.suri-mobile {
+            --suri-close-mask-size: 46px;
+            --suri-close-mask-top: 13px;
+            --suri-close-mask-right: 10px;
+          }
+        }
+
+        /*
+         * Aparelhos em modo paisagem.
+         */
+
+        @media
+          (orientation: landscape)
+          and
+          (max-height: 600px) {
+          html.suri-mobile {
+            --suri-close-mask-size: 40px;
+            --suri-close-mask-top: 8px;
+            --suri-close-mask-right: 8px;
+          }
+        }
+
+        /*
+         * ==========================================================
+         * CONFIGURAÇÕES EXCLUSIVAS DA VERSÃO WEB
+         * ==========================================================
+         */
+
+        html.suri-web {
+          --chat-launcher-size: 72px;
+          --chat-launcher-right: 24px;
+          --chat-launcher-bottom: 24px;
+
+          --chat-popup-width:
+            min(780px, calc(100vw - 48px));
+
+          --chat-popup-height:
+            min(780px, calc(100dvh - 100px));
+        }
+
+        /*
+         * Janela principal do chat na Web.
+         */
+
+        html.suri-web .__talkjs_popup {
+          position: fixed !important;
+
+          width:
+            var(--chat-popup-width) !important;
+
+          height:
+            var(--chat-popup-height) !important;
+
+          min-width: 400px !important;
+          min-height: 480px !important;
+
+          max-width: none !important;
+          max-height: none !important;
+
+          top: 50% !important;
+          left: 50% !important;
+
+          right: auto !important;
+          bottom: auto !important;
+
+          overflow: visible !important;
+
+          border-radius: 24px !important;
+
+          background: #ffffff !important;
+          background-color: #ffffff !important;
+
+          z-index: 2147483646 !important;
+
+          box-shadow:
+            0 28px 80px rgba(15, 23, 42, 0.25),
+            0 0 0 1px rgba(0, 167, 74, 0.30),
+            0 0 44px rgba(0, 167, 74, 0.25)
+            !important;
+
+          transform:
+            translate(-50%, -50%);
+
+          transform-origin:
+            center center;
+
+          animation:
+            chatPopupEnter
+            600ms
+            cubic-bezier(0.16, 1, 0.3, 1)
+            both;
+        }
+
+        /*
+         * Aura verde externa.
+         */
+
+        html.suri-web .__talkjs_popup::before {
+          content: "";
+
+          position: absolute;
+
+          inset: -14px;
+
+          z-index: -1;
+
+          border-radius: 34px;
+
+          pointer-events: none;
+
+          background:
+            radial-gradient(
+              circle at 10% 10%,
+              rgba(34, 197, 94, 0.50),
+              transparent 24%
+            ),
+            radial-gradient(
+              circle at 90% 12%,
+              rgba(0, 167, 74, 0.38),
+              transparent 25%
+            ),
+            radial-gradient(
+              circle at 12% 90%,
+              rgba(34, 197, 94, 0.32),
+              transparent 25%
+            ),
+            radial-gradient(
+              circle at 90% 90%,
+              rgba(0, 167, 74, 0.48),
+              transparent 24%
+            );
+
+          filter: blur(14px);
+
+          animation:
+            chatAuraPulse
+            2.6s
+            infinite
+            ease-in-out;
+        }
+
+        /*
+         * Iframe interno da conversa na Web.
+         */
+
+        html.suri-web .__talkjs_popup iframe,
+        html.suri-web
+        .__talkjs_popup
+        iframe[src*="chatbotmaker"],
+        html.suri-web
+        .__talkjs_popup
+        iframe[src*="talkjs"] {
+          display: block !important;
+
+          position: absolute !important;
+
+          inset: 0 !important;
+
+          width: 100% !important;
+          height: 100% !important;
+
+          min-width: 100% !important;
+          min-height: 100% !important;
+
+          max-width: 100% !important;
+          max-height: 100% !important;
+
+          margin: 0 !important;
+          padding: 0 !important;
+
+          overflow: hidden !important;
+
+          border: none !important;
+          outline: none !important;
+
+          border-radius: 24px !important;
+
+          background: #ffffff !important;
+          background-color: #ffffff !important;
+        }
+
+        /*
+         * Launcher da Web.
+         *
+         * Continua no DOM para permitir a abertura automática,
+         * mas permanece invisível.
+         */
+
+        html.suri-web .__talkjs_launcher {
+          position: fixed !important;
+
+          width:
+            var(--chat-launcher-size) !important;
+
+          height:
+            var(--chat-launcher-size) !important;
+
+          min-width:
+            var(--chat-launcher-size) !important;
+
+          min-height:
+            var(--chat-launcher-size) !important;
+
+          right:
+            var(--chat-launcher-right) !important;
+
+          bottom:
+            var(--chat-launcher-bottom) !important;
+
+          z-index: 2147483647 !important;
+
+          border:
+            2px solid
+            rgba(0, 167, 74, 0.24)
+            !important;
+
+          border-radius: 50% !important;
+
+          background-color: #ffffff !important;
+
+          background-position:
+            center !important;
+
+          background-size:
+            42px 42px !important;
+
+          background-repeat:
+            no-repeat !important;
+
+          box-shadow:
+            0 18px 40px rgba(0, 167, 74, 0.32),
+            0 0 26px rgba(0, 167, 74, 0.28)
+            !important;
+
+          animation: none !important;
+          transition: none !important;
+
+          opacity: 0 !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+        }
+
+        html.suri-web
+        .__talkjs_launcher.closed,
+        html.suri-web
+        .__talkjs_launcher.open {
+          background-image:
+            url(
+              "assets/assets/images/logos/potyWork.png"
+            )
+            !important;
+        }
+
+        /*
+         * ==========================================================
+         * TABLETS E JANELAS WEB MENORES
+         * ==========================================================
+         */
+
+        @media (max-width: 900px) {
+          html.suri-web {
+            --chat-launcher-size: 66px;
+            --chat-launcher-right: 16px;
+            --chat-launcher-bottom: 16px;
+          }
+
+          html.suri-web .__talkjs_popup {
+            width:
+              calc(100vw - 32px) !important;
+
+            height:
+              calc(100dvh - 40px) !important;
+
+            min-width: 0 !important;
+            min-height: 420px !important;
+
+            top: 50% !important;
+            left: 50% !important;
+
+            right: auto !important;
+            bottom: auto !important;
+
+            border-radius: 20px !important;
+          }
+
+          html.suri-web
+          .__talkjs_popup
+          iframe,
+          html.suri-web
+          .__talkjs_popup
+          iframe[src*="chatbotmaker"],
+          html.suri-web
+          .__talkjs_popup
+          iframe[src*="talkjs"] {
+            border-radius: 20px !important;
+          }
+        }
+
+        /*
+         * ==========================================================
+         * JANELAS WEB ESTREITAS
+         * ==========================================================
+         */
+
+        @media (max-width: 600px) {
+          html.suri-web {
+            --chat-launcher-size: 62px;
+            --chat-launcher-right: 12px;
+            --chat-launcher-bottom: 12px;
+          }
+
+          html.suri-web .__talkjs_popup {
+            top: 50% !important;
+            left: 50% !important;
+
+            right: auto !important;
+            bottom: auto !important;
+
+            width:
+              calc(100vw - 20px) !important;
+
+            height:
+              calc(100dvh - 20px) !important;
+
+            min-width: 0 !important;
+            min-height: 0 !important;
+
+            border-radius: 18px !important;
+          }
+
+          html.suri-web
+          .__talkjs_popup::before {
+            inset: -7px;
+
+            border-radius: 24px;
+
+            filter: blur(9px);
+          }
+
+          html.suri-web
+          .__talkjs_popup
+          iframe,
+          html.suri-web
+          .__talkjs_popup
+          iframe[src*="chatbotmaker"],
+          html.suri-web
+          .__talkjs_popup
+          iframe[src*="talkjs"] {
+            border-radius: 18px !important;
+          }
+
+          html.suri-web
+          .__talkjs_launcher {
+            background-size:
+              36px 36px !important;
+          }
+        }
+
+        /*
+         * ==========================================================
+         * ANIMAÇÕES
+         * ==========================================================
+         */
+
+        @keyframes chatPopupEnter {
+          from {
+            opacity: 0;
+
+            transform:
+              translate(
+                -50%,
+                calc(-50% + 24px)
+              )
+              scale(0.94);
+          }
+
+          to {
+            opacity: 1;
+
+            transform:
+              translate(-50%, -50%)
+              scale(1);
+          }
+        }
+
+        @keyframes chatAuraPulse {
+          0%,
+          100% {
+            opacity: 0.60;
+
+            transform:
+              scale(0.99);
+          }
+
+          50% {
+            opacity: 1;
+
+            transform:
+              scale(1.015);
+          }
+        }
+
+        /*
+         * Acessibilidade.
+         */
+
+        @media (
+          prefers-reduced-motion: reduce
+        ) {
+          html.suri-web
+          .__talkjs_popup,
+          html.suri-web
+          .__talkjs_popup::before,
+          html.suri-web
+          .__talkjs_launcher {
+            animation: none !important;
+            transition: none !important;
+          }
+        }
+    </style>
+</head>
+
+<body>
+<div id="status-suri">
+    Baixando o atendimento da Paty...
+</div>
+
+<script>
+    let inicializacaoExecutada = false;
+    let flutterAvisado = false;
+    let observerSuri = null;
+    let chatAbertoAutomaticamente = false;
+    let mensagemInicialEnviada = false;
+    let envioMensagemInicialEmAndamento = false;
+    let timerMensagemInicial = null;
+    let tentativasMensagemInicial = 0;
+
+    const MENSAGEM_INICIAL =
+      'Boa tarde, tudo bem?';
+
+    const MAX_TENTATIVAS_MENSAGEM_INICIAL =
+      10;
+
+    const INTERVALO_MENSAGEM_INICIAL =
+      700;
+
+    function obterDocumentoDoChatbot() {
+      const iframe =
+        document.querySelector(
+          'iframe[src*="chatbotmaker"], ' +
+          'iframe[src*="talkjs"], ' +
+          '.__talkjs_popup iframe'
+        );
+
+      if (!iframe) {
+        console.warn(
+          '[SURI] Iframe do chatbot ainda não foi encontrado.'
+        );
+
+        return null;
+      }
+
+      try {
+        const documento =
+          iframe.contentDocument ||
+          (
+            iframe.contentWindow &&
+            iframe.contentWindow.document
+          );
+
+        if (!documento) {
+          console.warn(
+            '[SURI] O documento interno do iframe ainda não está disponível.'
+          );
+
+          return null;
+        }
+
+        return documento;
+      } catch (erro) {
+        /*
+         * Quando o iframe pertence a outro domínio,
+         * o navegador impede o acesso ao conteúdo interno.
+         */
+
+        console.warn(
+          '[SURI] O navegador bloqueou o acesso ao iframe por política de origem cruzada:',
+          erro
+        );
+
+        return null;
+      }
+    }
+
+    function elementoEstaVisivel(elemento) {
+      if (!elemento) {
+        return false;
+      }
+
+      const janela =
+        elemento.ownerDocument.defaultView ||
+        window;
+
+      const estilo =
+        janela.getComputedStyle(elemento);
+
+      const retangulo =
+        elemento.getBoundingClientRect();
+
+      return (
+        estilo.display !== 'none' &&
+        estilo.visibility !== 'hidden' &&
+        retangulo.width > 0 &&
+        retangulo.height > 0
+      );
+    }
+
+    function definirValorDoCampo(
+      campo,
+      texto
+    ) {
+      const janela =
+        campo.ownerDocument.defaultView ||
+        window;
+
+      const tag =
+        campo.tagName.toUpperCase();
+
+      if (
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA'
+      ) {
+        const prototipo =
+          tag === 'TEXTAREA'
+            ? janela.HTMLTextAreaElement.prototype
+            : janela.HTMLInputElement.prototype;
+
+        const descritor =
+          Object.getOwnPropertyDescriptor(
+            prototipo,
+            'value'
+          );
+
+        if (
+          descritor &&
+          typeof descritor.set === 'function'
+        ) {
+          descritor.set.call(
+            campo,
+            texto
+          );
+        } else {
+          campo.value = texto;
+        }
+      } else if (
+        campo.isContentEditable
+      ) {
+        campo.textContent = texto;
+      }
+
+      campo.dispatchEvent(
+        new janela.InputEvent(
+          'beforeinput',
+          {
+            bubbles: true,
+            cancelable: true,
+            inputType: 'insertText',
+            data: texto
+          }
+        )
+      );
+
+      campo.dispatchEvent(
+        new janela.InputEvent(
+          'input',
+          {
+            bubbles: true,
+            inputType: 'insertText',
+            data: texto
+          }
+        )
+      );
+
+      campo.dispatchEvent(
+        new janela.Event(
+          'change',
+          {
+            bubbles: true
+          }
+        )
+      );
+    }
+
+    function localizarCampoMensagem(
+      documento
+    ) {
+      const seletores = [
+        'textarea:not([disabled]):not([readonly])',
+        'input[type="text"]:not([disabled]):not([readonly])',
+        '[contenteditable="true"][role="textbox"]',
+        '[contenteditable="true"]'
+      ];
+
+      for (const seletor of seletores) {
+        const campos =
+          documento.querySelectorAll(
+            seletor
+          );
+
+        for (const campo of campos) {
+          if (elementoEstaVisivel(campo)) {
+            return campo;
+          }
+        }
+      }
+
+      return null;
+    }
+
+    function localizarBotaoEnviar(
+      documento,
+      campo
+    ) {
+      const seletores = [
+        'button[type="submit"]:not([disabled])',
+        'button[aria-label*="enviar" i]:not([disabled])',
+        'button[aria-label*="send" i]:not([disabled])',
+        'button[title*="enviar" i]:not([disabled])',
+        'button[title*="send" i]:not([disabled])',
+        '[role="button"][aria-label*="enviar" i]',
+        '[role="button"][aria-label*="send" i]',
+        '[data-testid*="send" i]',
+        '[class*="send" i] button:not([disabled])',
+        'button[class*="send" i]:not([disabled])'
+      ];
+
+      for (const seletor of seletores) {
+        const botoes =
+          documento.querySelectorAll(
+            seletor
+          );
+
+        for (const botao of botoes) {
+          if (elementoEstaVisivel(botao)) {
+            return botao;
+          }
+        }
+      }
+
+      if (
+        campo &&
+        campo.form
+      ) {
+        return campo.form.querySelector(
+          'button:not([disabled]), ' +
+          'input[type="submit"]:not([disabled])'
+        );
+      }
+
+      return null;
+    }
+
+    function simularEnvioMensagem(texto) {
+      const documento =
+        obterDocumentoDoChatbot();
+
+      if (!documento) {
+        return false;
+      }
+
+      const campoMensagem =
+        localizarCampoMensagem(
+          documento
+        );
+
+      if (!campoMensagem) {
+        console.warn(
+          '[SURI] Campo de mensagem ainda não foi encontrado no iframe.'
+        );
+
+        return false;
+      }
+
+      try {
+        campoMensagem.focus();
+
+        definirValorDoCampo(
+          campoMensagem,
+          texto
+        );
+
+        const botaoEnviar =
+          localizarBotaoEnviar(
+            documento,
+            campoMensagem
+          );
+
+        if (botaoEnviar) {
+          botaoEnviar.click();
+
+          console.log(
+            '[SURI] Mensagem simulada enviada:',
+            texto
+          );
+
+          return true;
+        }
+
+        /*
+         * Alternativa para chats que enviam com Enter
+         * e não expõem um botão identificável.
+         */
+
+        const janelaChat =
+          documento.defaultView ||
+          window;
+
+        const opcoesTeclado = {
+          key: 'Enter',
+          code: 'Enter',
+          keyCode: 13,
+          which: 13,
+          bubbles: true,
+          cancelable: true
+        };
+
+        campoMensagem.dispatchEvent(
+          new janelaChat.KeyboardEvent(
+            'keydown',
+            opcoesTeclado
+          )
+        );
+
+        campoMensagem.dispatchEvent(
+          new janelaChat.KeyboardEvent(
+            'keypress',
+            opcoesTeclado
+          )
+        );
+
+        campoMensagem.dispatchEvent(
+          new janelaChat.KeyboardEvent(
+            'keyup',
+            opcoesTeclado
+          )
+        );
+
+        console.log(
+          '[SURI] Tentativa de envio da mensagem por Enter:',
+          texto
+        );
+
+        return true;
+      } catch (erro) {
+        console.warn(
+          '[SURI] Não foi possível simular o envio da mensagem:',
+          erro
+        );
+
+        return false;
+      }
+    }
+
+    function enviarMensagemInicial() {
+      if (
+        mensagemInicialEnviada ||
+        envioMensagemInicialEmAndamento
+      ) {
+        return;
+      }
+
+      envioMensagemInicialEmAndamento = true;
+
+      atualizarStatus(
+        'Enviando mensagem inicial...'
+      );
+
+      const enviada =
+        simularEnvioMensagem(
+          MENSAGEM_INICIAL
+        );
+
+      envioMensagemInicialEmAndamento = false;
+
+      if (enviada) {
+        mensagemInicialEnviada = true;
+
+        atualizarStatus(
+          'Mensagem inicial enviada'
+        );
+
+        return;
+      }
+
+      /*
+       * O campo interno pode aparecer alguns instantes
+       * depois da abertura visual do chatbot.
+       */
+
+      if (
+        tentativasMensagemInicial <
+        MAX_TENTATIVAS_MENSAGEM_INICIAL
+      ) {
+        tentativasMensagemInicial += 1;
+
+        agendarMensagemInicial(
+          INTERVALO_MENSAGEM_INICIAL
+        );
+
+        return;
+      }
+
+      console.warn(
+        '[SURI] Não foi possível enviar a mensagem inicial automaticamente. ' +
+        'O iframe pode estar protegido por origem cruzada ou os seletores internos podem ter mudado.'
+      );
+
+      atualizarStatus(
+        'Chat iniciado'
+      );
+    }
+
+    function agendarMensagemInicial(
+      atraso = 600
+    ) {
+      if (
+        mensagemInicialEnviada ||
+        envioMensagemInicialEmAndamento
+      ) {
+        return;
+      }
+
+      if (timerMensagemInicial) {
+        clearTimeout(
+          timerMensagemInicial
+        );
+      }
+
+      timerMensagemInicial =
+        setTimeout(function () {
+          timerMensagemInicial = null;
+          enviarMensagemInicial();
+        }, atraso);
+    }
+
+    function atualizarStatus(mensagem) {
+      console.log(
+        '[SURI]',
+        mensagem
+      );
+
+      const status =
+        document.getElementById(
+          'status-suri'
+        );
+
+      if (status) {
+        status.textContent = mensagem;
+      }
+    }
+
+    function removerStatus() {
+      setTimeout(function () {
+        const status =
+          document.getElementById(
+            'status-suri'
+          );
+
+        if (status) {
+          status.remove();
+        }
+      }, 1200);
+    }
+
+    function avisarFlutterPronto() {
+      if (flutterAvisado) {
+        return;
+      }
+
+      flutterAvisado = true;
+
+      if (observerSuri) {
+        observerSuri.disconnect();
+        observerSuri = null;
+      }
+
+      atualizarStatus(
+        'Paty carregada'
+      );
+
+      /*
+       * Flutter Web.
+       */
+
+      if (
+        window.parent &&
+        window.parent !== window
+      ) {
+        window.parent.postMessage(
+          'POTY_SURI_READY',
+          '*'
+        );
+      }
+
+      /*
+       * Flutter Android e iOS.
+       */
+
+      if (
+        window.PotySuri &&
+        typeof window.PotySuri.postMessage ===
+          'function'
+      ) {
+        window.PotySuri.postMessage(
+          'POTY_SURI_READY'
+        );
+      }
+
+      removerStatus();
+    }
+
+    function avisarFlutterErro(erro) {
+      const mensagem =
+        erro && erro.message
+          ? erro.message
+          : String(
+              erro ||
+              'Erro desconhecido'
+            );
+
+      const mensagemCompleta =
+        'POTY_SURI_ERROR:' +
+        mensagem;
+
+      atualizarStatus(
+        'Erro: ' + mensagem
+      );
+
+      /*
+       * Flutter Web.
+       */
+
+      if (
+        window.parent &&
+        window.parent !== window
+      ) {
+        window.parent.postMessage(
+          mensagemCompleta,
+          '*'
+        );
+      }
+
+      /*
+       * Flutter Android e iOS.
+       */
+
+      if (
+        window.PotySuri &&
+        typeof window.PotySuri.postMessage ===
+          'function'
+      ) {
+        window.PotySuri.postMessage(
+          mensagemCompleta
+        );
+      }
+    }
+
+    /*
+     * Localiza o elemento da SURI.
+     *
+     * O launcher fechado vem primeiro para permitir
+     * a abertura automática.
+     */
+
+    function localizarElementoDaSuri() {
+      const seletores = [
+        '.__talkjs_launcher.closed',
+        '.__talkjs_launcher',
+        '.__talkjs_popup',
+        'iframe[src*="chatbotmaker"]',
+        'iframe[src*="talkjs"]',
+        '[id^="cbm-"]',
+        '[class*="cbm-"]'
+      ];
+
+      for (const seletor of seletores) {
+        const elementos =
+          document.querySelectorAll(
+            seletor
+          );
+
+        for (const elemento of elementos) {
+          if (
+            elemento.tagName === 'SCRIPT' &&
+            elemento.id === 'cbm-jssdk'
+          ) {
+            continue;
+          }
+
+          return elemento;
+        }
+      }
+
+      return null;
+    }
+
+    function tentarAbrirChat() {
+      const elemento =
+        localizarElementoDaSuri();
+
+      if (!elemento) {
+        return false;
+      }
+
+      atualizarStatus(
+        'Interface da Paty encontrada'
+      );
+
+      try {
+        if (
+          !chatAbertoAutomaticamente &&
+          elemento instanceof HTMLElement &&
+          elemento.tagName !== 'IFRAME'
+        ) {
+          chatAbertoAutomaticamente = true;
+
+          elemento.click();
+
+          atualizarStatus(
+            'Abrindo atendimento...'
+          );
+        }
+      } catch (erro) {
+        chatAbertoAutomaticamente = false;
+
+        console.warn(
+          '[SURI] Não foi possível clicar automaticamente:',
+          erro
+        );
+      }
+
+      /*
+       * Tenta disparar o fluxo Y quando a interface
+       * já estiver disponível. A trava interna evita
+       * o envio duplicado.
+       */
+
+      agendarMensagemInicial(800);
+
+      avisarFlutterPronto();
+
+      return true;
+    }
+
+    function observarInterfaceDaSuri() {
+      if (tentarAbrirChat()) {
+        return;
+      }
+
+      observerSuri =
+        new MutationObserver(
+          function () {
+            tentarAbrirChat();
+          }
+        );
+
+      observerSuri.observe(
+        document.documentElement,
+        {
+          childList: true,
+          subtree: true,
+          attributes: true
+        }
+      );
+
+      /*
+       * Fallback para liberar a interface
+       * mesmo quando o SDK usar seletores diferentes.
+       */
+
+      setTimeout(function () {
+        if (!flutterAvisado) {
+          atualizarStatus(
+            'SDK iniciado. Exibindo atendimento.'
+          );
+
+          avisarFlutterPronto();
+        }
+      }, 8000);
+    }
+
+    /*
+     * Inicialização da SURI.
+     */
+
+    window.cbAsyncInit = function () {
+      if (inicializacaoExecutada) {
+        return;
+      }
+
+      inicializacaoExecutada = true;
+
+      try {
+        atualizarStatus(
+          'SDK inicializado pela SURI'
+        );
+
+        if (
+          typeof CBM === 'undefined'
+        ) {
+          throw new Error(
+            'O objeto global CBM não foi disponibilizado.'
+          );
+        }
+
+        if (
+          typeof CBM.StartWebChat !==
+          'function'
+        ) {
+          throw new Error(
+            'CBM.StartWebChat não foi disponibilizado.'
+          );
+        }
+
+        CBM.ChatbotId =
+          'cb18945079';
+
+        atualizarStatus(
+          'Iniciando o chatbot...'
+        );
+
+        /*
+         * O SDK pode manter a Promise pendente.
+         */
+
+        const resultado =
+          CBM.StartWebChat();
+
+        observarInterfaceDaSuri();
+
+        if (
+          resultado &&
+          typeof resultado.then ===
+          'function'
+        ) {
+          resultado
+            .then(function () {
+              atualizarStatus(
+                'Inicialização concluída'
+              );
+
+              /*
+               * Envia a palavra-chave que inicia
+               * automaticamente o fluxo Y.
+               */
+
+              agendarMensagemInicial(300);
+
+              setTimeout(function () {
+                avisarFlutterPronto();
+              }, 500);
+            })
+            .catch(function (erro) {
+              avisarFlutterErro(erro);
+            });
+        }
+      } catch (erro) {
+        inicializacaoExecutada = false;
+
+        avisarFlutterErro(erro);
+      }
+    };
+
+    function sdkBaixado() {
+      atualizarStatus(
+        'Arquivo do SDK baixado. Aguardando a SURI...'
+      );
+
+      setTimeout(function () {
+        if (!inicializacaoExecutada) {
+          avisarFlutterErro(
+            'O SDK foi baixado, mas não chamou cbAsyncInit.'
+          );
+        }
+      }, 15000);
+    }
+
+    window.addEventListener(
+      'error',
+      function (event) {
+        const origem =
+          event.filename || '';
+
+        if (
+          origem.includes(
+            'chatbotmaker'
+          ) ||
+          origem.includes(
+            'talkjs'
+          )
+        ) {
+          avisarFlutterErro(
+            event.error ||
+            event.message
+          );
+        }
+      }
+    );
+
+    window.addEventListener(
+      'unhandledrejection',
+      function (event) {
+        console.error(
+          '[SURI] Promise rejeitada:',
+          event.reason
+        );
+      }
+    );
+</script>
+
+<script
+        id="cbm-jssdk"
+        src="https://webchat.chatbotmaker.io/cbm-jssdk.js"
+        async
+        onload="sdkBaixado()"
+        onerror="avisarFlutterErro('Falha ao baixar o SDK da SURI.')"
+></script>
+</body>
+</html>

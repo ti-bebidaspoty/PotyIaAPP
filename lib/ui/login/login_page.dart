@@ -1,10 +1,10 @@
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:poty_ia_app/ui/core/themes/app_breakpoints.dart';
-import 'package:poty_ia_app/ui/core/themes/cores.dart';
-import 'package:poty_ia_app/ui/core/themes/app_spacing.dart';
-import 'package:poty_ia_app/ui/core/widgets/app_logo.dart';
 import 'package:poty_ia_app/ui/login/login_controller.dart';
+import 'package:video_player/video_player.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -16,7 +16,52 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+  late final VideoPlayerController _videoController;
+
+  bool _videoInicializado = false;
+  bool _erroNoVideo = false;
+
   LoginController get controller => Get.find<LoginController>();
+
+  @override
+  void initState() {
+    super.initState();
+
+    _videoController = VideoPlayerController.asset(
+      'assets/videos/paty.mp4',
+    );
+
+    _inicializarVideo();
+  }
+
+  Future<void> _inicializarVideo() async {
+    try {
+      await _videoController.initialize();
+      await _videoController.setLooping(true);
+      await _videoController.setVolume(0);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _videoInicializado = true;
+      });
+
+      await _videoController.play();
+    } catch (error, stackTrace) {
+      debugPrint('Erro ao carregar o vídeo do login: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _erroNoVideo = true;
+      });
+    }
+  }
 
   Future<void> _enviarLogin() async {
     FocusManager.instance.primaryFocus?.unfocus();
@@ -31,432 +76,217 @@ class _LoginPageState extends State<LoginPage> {
     await controller.login();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.maxWidth;
-          final isDesktop =
-          AppBreakpoints.isDesktop(width);
+  InputDecoration _decorationCampo({
+    required String hint,
+    required IconData icon,
+    Widget? suffixIcon,
+  }) {
+    OutlineInputBorder border(Color color, double width) {
+      return OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: BorderSide(
+          color: color,
+          width: width,
+        ),
+      );
+    }
 
-          if (isDesktop) {
-            return _DesktopLoginLayout(
-              formKey: _formKey,
-              controller: controller,
-              onSubmit: _enviarLogin,
-            );
-          }
-
-          return _CompactLoginLayout(
-            formKey: _formKey,
-            controller: controller,
-            onSubmit: _enviarLogin,
-          );
-        },
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(
+        color: _LoginColors.fieldHint,
+        fontWeight: FontWeight.w400,
+      ),
+      filled: true,
+      fillColor: _LoginColors.fieldSurface,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 18,
+      ),
+      prefixIcon: Icon(
+        icon,
+        color: _LoginColors.brandGreen,
+        size: 21,
+      ),
+      suffixIcon: suffixIcon,
+      border: border(_LoginColors.fieldBorder, 1),
+      enabledBorder: border(_LoginColors.fieldBorder, 1.2),
+      focusedBorder: border(_LoginColors.brandGreen, 2),
+      errorBorder: border(_LoginColors.error, 1.4),
+      focusedErrorBorder: border(_LoginColors.error, 2),
+      errorStyle: const TextStyle(
+        color: _LoginColors.error,
+        fontWeight: FontWeight.w500,
       ),
     );
   }
-}
 
-class _DesktopLoginLayout extends StatelessWidget {
-  final GlobalKey<FormState> formKey;
-  final LoginController controller;
-  final Future<void> Function() onSubmit;
-
-  const _DesktopLoginLayout({
-    required this.formKey,
-    required this.controller,
-    required this.onSubmit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _labelCampo(
+      BuildContext context,
+      String texto,
+      ) {
     return Row(
       children: [
-        Expanded(
-          flex: 11,
-          child: _BrandPanel(),
+        Text(
+          texto,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: _LoginColors.textStrong,
+            fontWeight: FontWeight.w700,
+          ),
         ),
-        Expanded(
-          flex: 9,
-          child: ColoredBox(
-            color: AppColors.surface,
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(
-                  AppSpacing.xxl,
-                ),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: 440,
-                  ),
-                  child: _LoginForm(
-                    formKey: formKey,
-                    controller: controller,
-                    onSubmit: onSubmit,
-                    showHeaderLogo: false,
-                  ),
-                ),
-              ),
-            ),
+        const SizedBox(width: 4),
+        const Text(
+          '*',
+          style: TextStyle(
+            color: _LoginColors.brandGreen,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ],
     );
   }
-}
 
-class _CompactLoginLayout extends StatelessWidget {
-  final GlobalKey<FormState> formKey;
-  final LoginController controller;
-  final Future<void> Function() onSubmit;
-
-  const _CompactLoginLayout({
-    required this.formKey,
-    required this.controller,
-    required this.onSubmit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primaryDeep,
-            AppColors.primaryDark,
-            AppColors.primary,
-            Color(0xFF8F9443),
-          ],
-          stops: [
-            0.0,
-            0.40,
-            0.82,
-            1.0,
-          ],
-        ),
-      ),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.xxl,
+  Widget _conteudoVideo({
+    required BoxFit fit,
+  }) {
+    if (_erroNoVideo) {
+      return const ColoredBox(
+        color: _LoginColors.videoBackground,
+        child: Center(
+          child: Icon(
+            Icons.videocam_off_outlined,
+            color: Colors.white70,
+            size: 44,
           ),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 520,
-              ),
-              child: Column(
-                children: [
-                  const AppLogo(
-                    foregroundColor: Colors.white,
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  Card(
-                    elevation: 8,
-                    shadowColor:
-                    AppColors.textPrimary.withValues(
-                      alpha: 0.18,
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.all(
-                        MediaQuery.sizeOf(context).width < 380
-                            ? AppSpacing.lg
-                            : AppSpacing.xl,
-                      ),
-                      child: _LoginForm(
-                        formKey: formKey,
-                        controller: controller,
-                        onSubmit: onSubmit,
-                        showHeaderLogo: false,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+        ),
+      );
+    }
+
+    if (!_videoInicializado ||
+        !_videoController.value.isInitialized) {
+      return const ColoredBox(
+        color: _LoginColors.videoBackground,
+        child: Center(
+          child: SizedBox(
+            width: 32,
+            height: 32,
+            child: CircularProgressIndicator(
+              color: _LoginColors.lime,
+              strokeWidth: 2.5,
             ),
+          ),
+        ),
+      );
+    }
+
+    final tamanhoVideo = _videoController.value.size;
+
+    return FittedBox(
+      fit: fit,
+      clipBehavior: Clip.hardEdge,
+      child: SizedBox(
+        width: tamanhoVideo.width,
+        height: tamanhoVideo.height,
+        child: VideoPlayer(_videoController),
+      ),
+    );
+  }
+
+  Widget _buildVideoCompacto() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: _LoginColors.videoBackground,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.12),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 30,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(23),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: _conteudoVideo(
+            fit: BoxFit.cover,
           ),
         ),
       ),
     );
   }
-}
 
-class _BrandPanel extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildPainelVideoWeb() {
     return DecoratedBox(
       decoration: const BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.primaryDeep,
-            AppColors.primaryDark,
-            AppColors.primary,
-            Color(0xFF8F9443),
-          ],
-          stops: [
-            0.0,
-            0.40,
-            0.82,
-            1.0,
+            _LoginColors.videoPanelTop,
+            _LoginColors.videoPanelBottom,
           ],
         ),
       ),
       child: Stack(
+        fit: StackFit.expand,
         children: [
-          Positioned(
-            top: -120,
-            right: -100,
-            child: _DecorativeCircle(
-              size: 340,
-              opacity: 0.08,
-            ),
-          ),
-          Positioned(
-            bottom: -160,
-            left: -120,
-            child: _DecorativeCircle(
-              size: 420,
-              opacity: 0.06,
-            ),
-          ),
+          const _VideoPanelArtwork(),
           Padding(
-            padding: const EdgeInsets.all(
-              AppSpacing.xxxl,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const AppLogo(
-                  foregroundColor: Colors.white,
-                ),
-                const Spacer(),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: 560,
-                  ),
-                  child: Column(
-                    crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Inteligência para decisões mais rápidas.',
-                        style: Theme.of(context)
-                            .textTheme
-                            .displaySmall
-                            ?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          height: 1.08,
-                          letterSpacing: -1.2,
-                        ),
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: AspectRatio(
+                aspectRatio:
+                _videoController.value.isInitialized
+                    ? _videoController.value.aspectRatio
+                    : 16 / 9,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: _LoginColors.videoBackground,
+                    borderRadius: BorderRadius.circular(26),
+                    border: Border.all(
+                      color: Colors.white.withValues(
+                        alpha: 0.14,
                       ),
-                      const SizedBox(height: AppSpacing.lg),
-                      Text(
-                        'Uma plataforma inteligente para facilitar '
-                            'o acesso às informações e apoiar os processos '
-                            'da Poty.',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(
-                          color: Colors.white.withValues(
-                            alpha: 0.82,
-                          ),
-                          height: 1.6,
-                          fontWeight: FontWeight.w400,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(
+                          alpha: 0.34,
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-                      const Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          _FeatureBadge(
-                            icon: Icons.lock_outline_rounded,
-                            text: 'Ambiente seguro',
-                          ),
-                          _FeatureBadge(
-                            icon: Icons.bolt_rounded,
-                            text: 'Acesso rápido',
-                          ),
-                          _FeatureBadge(
-                            icon: Icons.auto_awesome_rounded,
-                            text: 'Potencializado por IA',
-                          ),
-                        ],
+                        blurRadius: 40,
+                        offset: const Offset(0, 20),
                       ),
                     ],
                   ),
-                ),
-                const Spacer(),
-                Text(
-                  'Bebidas Poty • Tecnologia da Informação',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(
-                    color: Colors.white.withValues(
-                      alpha: 0.62,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LoginForm extends StatelessWidget {
-  final GlobalKey<FormState> formKey;
-  final LoginController controller;
-  final Future<void> Function() onSubmit;
-  final bool showHeaderLogo;
-
-  const _LoginForm({
-    required this.formKey,
-    required this.controller,
-    required this.onSubmit,
-    required this.showHeaderLogo,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AutofillGroup(
-      child: Form(
-        key: formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (showHeaderLogo) ...[
-              const AppLogo(),
-              const SizedBox(height: AppSpacing.xxl),
-            ],
-            Text(
-              'Bem-vindo',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineMedium,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Informe suas credenciais para acessar o sistema.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Text(
-              'Usuário',
-              style: Theme.of(context)
-                  .textTheme
-                  .labelLarge,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            TextFormField(
-              controller: controller.usuarioController,
-              validator: controller.validarUsuario,
-              autofillHints: const [
-                AutofillHints.username,
-              ],
-              keyboardType: TextInputType.text,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                hintText: 'Digite seu usuário',
-                prefixIcon:
-                Icon(Icons.person_outline_rounded),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'Senha',
-              style: Theme.of(context)
-                  .textTheme
-                  .labelLarge,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Obx(
-                  () => TextFormField(
-                controller: controller.senhaController,
-                validator: controller.validarSenha,
-                obscureText:
-                controller.senhaOculta.value,
-                autocorrect: false,
-                enableSuggestions: false,
-                autofillHints: const [
-                  AutofillHints.password,
-                ],
-                textInputAction: TextInputAction.done,
-                onFieldSubmitted: (_) {
-                  onSubmit();
-                },
-                decoration: InputDecoration(
-                  hintText: 'Digite sua senha',
-                  prefixIcon: const Icon(
-                    Icons.lock_outline_rounded,
-                  ),
-                  suffixIcon: IconButton(
-                    tooltip:
-                    controller.senhaOculta.value
-                        ? 'Mostrar senha'
-                        : 'Ocultar senha',
-                    onPressed: controller
-                        .alterarVisibilidadeSenha,
-                    icon: AnimatedSwitcher(
-                      duration:
-                      const Duration(milliseconds: 180),
-                      child: Icon(
-                        controller.senhaOculta.value
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                        key: ValueKey(
-                          controller.senhaOculta.value,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Obx(
-                  () => SizedBox(
-                height: 52,
-                child: FilledButton(
-                  onPressed: controller.isLoading.value
-                      ? null
-                      : onSubmit,
-                  child: AnimatedSwitcher(
-                    duration:
-                    const Duration(milliseconds: 180),
-                    child: controller.isLoading.value
-                        ? const SizedBox(
-                      key: ValueKey('loading'),
-                      width: 22,
-                      height: 22,
-                      child:
-                      CircularProgressIndicator(
-                        strokeWidth: 2.2,
-                        color: Colors.white,
-                      ),
-                    )
-                        : const Row(
-                      key: ValueKey('button'),
-                      mainAxisAlignment:
-                      MainAxisAlignment.center,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(25),
+                    child: Stack(
+                      fit: StackFit.expand,
                       children: [
-                        Text('Entrar'),
-                        SizedBox(width: 10),
-                        Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 20,
+                        _conteudoVideo(
+                          fit: BoxFit.cover,
+                        ),
+                        const IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Color(0x00000000),
+                                  Color(0x05000000),
+                                  Color(0x24000000),
+                                ],
+                                stops: [0, 0.70, 1],
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -464,10 +294,475 @@ class _LoginForm extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildCabecalhoLogin(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 70,
+          height: 70,
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: _LoginColors.logoBorder,
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.10),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: ClipOval(
+            child: Image.asset(
+              'assets/images/poty.png',
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
+              errorBuilder: (
+                  context,
+                  error,
+                  stackTrace,
+                  ) {
+                return const Icon(
+                  Icons.business_rounded,
+                  color: _LoginColors.brandGreen,
+                  size: 34,
+                );
+              },
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            'BEBIDAS POTY',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: _LoginColors.textStrong,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormulario(
+      BuildContext context, {
+        bool webDesktop = false,
+      }) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        webDesktop ? 34 : 26,
+        webDesktop ? 34 : 28,
+        webDesktop ? 34 : 26,
+        webDesktop ? 32 : 26,
+      ),
+      decoration: BoxDecoration(
+        color: _LoginColors.formCard,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(
+          color: _LoginColors.cardBorder,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(
+              alpha: webDesktop ? 0.12 : 0.18,
+            ),
+            blurRadius: webDesktop ? 28 : 32,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      child: AutofillGroup(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildCabecalhoLogin(context),
+              SizedBox(height: webDesktop ? 32 : 28),
+              _labelCampo(context, 'Usuário'),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: controller.usuarioController,
+                validator: controller.validarUsuario,
+                autocorrect: false,
+                enableSuggestions: false,
+                textCapitalization: TextCapitalization.none,
+                keyboardType: TextInputType.emailAddress,
+                autofillHints: const [
+                  AutofillHints.username,
+                  AutofillHints.email,
+                ],
+                textInputAction: TextInputAction.next,
+                onFieldSubmitted: (_) {
+                  FocusScope.of(context).nextFocus();
+                },
+                style: const TextStyle(
+                  color: _LoginColors.fieldText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+                decoration: _decorationCampo(
+                  hint: 'Digite seu usuário',
+                  icon: Icons.person_outline,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _labelCampo(context, 'Senha'),
+              const SizedBox(height: 8),
+              Obx(
+                    () => TextFormField(
+                  controller: controller.senhaController,
+                  validator: controller.validarSenha,
+                  obscureText: controller.senhaOculta.value,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  autofillHints: const [
+                    AutofillHints.password,
+                  ],
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) {
+                    _enviarLogin();
+                  },
+                  style: const TextStyle(
+                    color: _LoginColors.fieldText,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  decoration: _decorationCampo(
+                    hint: 'Digite sua senha',
+                    icon: Icons.lock_outline_rounded,
+                    suffixIcon: IconButton(
+                      tooltip: controller.senhaOculta.value
+                          ? 'Mostrar senha'
+                          : 'Ocultar senha',
+                      onPressed:
+                      controller.alterarVisibilidadeSenha,
+                      icon: AnimatedSwitcher(
+                        duration: const Duration(
+                          milliseconds: 180,
+                        ),
+                        child: Icon(
+                          controller.senhaOculta.value
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          key: ValueKey(
+                            controller.senhaOculta.value,
+                          ),
+                          color: _LoginColors.fieldIcon,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: webDesktop ? 30 : 28),
+              Obx(
+                    () => SizedBox(
+                  height: 56,
+                  child: FilledButton(
+                    onPressed: controller.isLoading.value
+                        ? null
+                        : _enviarLogin,
+                    style: FilledButton.styleFrom(
+                      backgroundColor:
+                      _LoginColors.brandGreen,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor:
+                      _LoginColors.brandGreen.withValues(
+                        alpha: 0.45,
+                      ),
+                      disabledForegroundColor:
+                      Colors.white.withValues(
+                        alpha: 0.75,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(
+                        milliseconds: 180,
+                      ),
+                      child: controller.isLoading.value
+                          ? const SizedBox(
+                        key: ValueKey('loading'),
+                        width: 23,
+                        height: 23,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.3,
+                          color: Colors.white,
+                        ),
+                      )
+                          : const Row(
+                        key: ValueKey('button'),
+                        mainAxisAlignment:
+                        MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Entrar',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLayoutWebDesktop(
+      BuildContext context,
+      BoxConstraints constraints,
+      ) {
+    const larguraMaximaPainel = 1440.0;
+    const paddingExterno = 32.0;
+    const paddingInternoVideo = 24.0;
+    const flexVideo = 14.0;
+    const flexFormulario = 8.0;
+
+    final larguraDisponivel = math.max(
+      0.0,
+      constraints.maxWidth - (paddingExterno * 2),
+    );
+
+    final larguraPainel = math.min(
+      larguraDisponivel,
+      larguraMaximaPainel,
+    );
+
+    final larguraColunaVideo =
+        larguraPainel *
+            (flexVideo / (flexVideo + flexFormulario));
+
+    final larguraUtilVideo = math.max(
+      0.0,
+      larguraColunaVideo - (paddingInternoVideo * 2),
+    );
+
+    final proporcaoVideo =
+    _videoController.value.isInitialized &&
+        _videoController.value.aspectRatio > 0
+        ? _videoController.value.aspectRatio
+        : 16 / 9;
+
+    final alturaIdealPeloVideo =
+        (larguraUtilVideo / proporcaoVideo) +
+            (paddingInternoVideo * 2);
+
+    // Garante espaço suficiente para o formulário.
+    // Em telas largas, a altura passa a acompanhar exatamente
+    // a proporção do vídeo, eliminando o espaço vazio vertical.
+    final alturaPainel = math.max(
+      520.0,
+      alturaIdealPeloVideo,
+    );
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: math.max(
+            0,
+            constraints.maxHeight - 64,
+          ),
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 1440,
+            ),
+            child: SizedBox(
+              height: alturaPainel,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(34),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: _LoginColors.desktopShell,
+                    borderRadius: BorderRadius.circular(34),
+                    border: Border.all(
+                      color: Colors.white.withValues(
+                        alpha: 0.15,
+                      ),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(
+                          alpha: 0.28,
+                        ),
+                        blurRadius: 54,
+                        offset: const Offset(0, 26),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 14,
+                        child: _buildPainelVideoWeb(),
+                      ),
+                      Expanded(
+                        flex: 8,
+                        child: DecoratedBox(
+                          decoration: const BoxDecoration(
+                            color:
+                            _LoginColors.desktopAccessArea,
+                          ),
+                          child: Center(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.all(38),
+                              child: ConstrainedBox(
+                                constraints:
+                                const BoxConstraints(
+                                  maxWidth: 440,
+                                ),
+                                child: _buildFormulario(
+                                  context,
+                                  webDesktop: true,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLayoutCompacto(
+      BuildContext context,
+      BoxConstraints constraints,
+      ) {
+    final telaPequena = constraints.maxWidth < 420;
+
+    final espacamentoHorizontal =
+    telaPequena ? 16.0 : 24.0;
+
+    final espacamentoVertical =
+    constraints.maxHeight < 720 ? 16.0 : 28.0;
+
+    return SingleChildScrollView(
+      keyboardDismissBehavior:
+      ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: EdgeInsets.symmetric(
+        horizontal: espacamentoHorizontal,
+        vertical: espacamentoVertical,
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: math.max(
+            0,
+            constraints.maxHeight -
+                (espacamentoVertical * 2),
+          ),
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 520,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildVideoCompacto(),
+                SizedBox(
+                  height: telaPequena ? 18 : 24,
+                ),
+                _buildFormulario(context),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _videoController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      backgroundColor: _LoginColors.backgroundDark,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              _LoginColors.backgroundTop,
+              _LoginColors.backgroundMiddle,
+              _LoginColors.backgroundBottom,
+            ],
+            stops: [0, 0.58, 1],
+          ),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const _BackgroundArtwork(),
+            SafeArea(
+              child: LayoutBuilder(
+                builder: (
+                    context,
+                    constraints,
+                    ) {
+                  final usarLayoutWebDesktop =
+                      kIsWeb &&
+                          constraints.maxWidth >= 900;
+
+                  if (usarLayoutWebDesktop) {
+                    return _buildLayoutWebDesktop(
+                      context,
+                      constraints,
+                    );
+                  }
+
+                  return _buildLayoutCompacto(
+                    context,
+                    constraints,
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -476,44 +771,40 @@ class _LoginForm extends StatelessWidget {
   }
 }
 
-class _FeatureBadge extends StatelessWidget {
-  final IconData icon;
-  final String text;
-
-  const _FeatureBadge({
-    required this.icon,
-    required this.text,
-  });
+class _BackgroundArtwork extends StatelessWidget {
+  const _BackgroundArtwork();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 10,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.16),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+    return IgnorePointer(
+      child: Stack(
         children: [
-          Icon(
-            icon,
-            color: Colors.white,
-            size: 17,
+          Positioned(
+            top: -210,
+            right: -180,
+            child: Container(
+              width: 520,
+              height: 520,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(
+                  alpha: 0.045,
+                ),
+              ),
+            ),
           ),
-          const SizedBox(width: 8),
-          Text(
-            text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+          Positioned(
+            left: -250,
+            bottom: -330,
+            child: Container(
+              width: 650,
+              height: 650,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _LoginColors.lime.withValues(
+                  alpha: 0.07,
+                ),
+              ),
             ),
           ),
         ],
@@ -522,26 +813,78 @@ class _FeatureBadge extends StatelessWidget {
   }
 }
 
-class _DecorativeCircle extends StatelessWidget {
-  final double size;
-  final double opacity;
-
-  const _DecorativeCircle({
-    required this.size,
-    required this.opacity,
-  });
+class _VideoPanelArtwork extends StatelessWidget {
+  const _VideoPanelArtwork();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withValues(
-          alpha: opacity,
-        ),
+    return IgnorePointer(
+      child: Stack(
+        children: [
+          Positioned(
+            top: -150,
+            right: -120,
+            child: Container(
+              width: 400,
+              height: 400,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(
+                    alpha: 0.08,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: -170,
+            bottom: -210,
+            child: Container(
+              width: 460,
+              height: 460,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _LoginColors.lime.withValues(
+                  alpha: 0.055,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
+}
+
+abstract final class _LoginColors {
+  static const backgroundTop = Color(0xFF0C2117);
+  static const backgroundMiddle = Color(0xFF174126);
+  static const backgroundBottom = Color(0xFF466B28);
+  static const backgroundDark = Color(0xFF0C2117);
+
+  static const desktopShell = Color(0xFFF1F5EC);
+  static const desktopAccessArea = Color(0xFFDDE9D5);
+
+  static const videoPanelTop = Color(0xFF102C1D);
+  static const videoPanelBottom = Color(0xFF315B2C);
+  static const videoBackground = Color(0xFF09110D);
+
+  static const formCard = Color(0xFFF6F8F2);
+  static const cardBorder = Color(0xFFBFD0B5);
+
+  static const brandGreen = Color(0xFF174126);
+  static const lime = Color(0xFFB6CC45);
+
+  static const textStrong = Color(0xFF173020);
+
+  static const fieldSurface = Color(0xFFFFFFFF);
+  static const fieldBorder = Color(0xFFB8C8B2);
+  static const fieldText = Color(0xFF173020);
+  static const fieldHint = Color(0xFF7B897B);
+  static const fieldIcon = Color(0xFF526453);
+
+  static const logoBorder = Color(0xFFD1DDCB);
+
+  static const error = Color(0xFFC6433D);
 }

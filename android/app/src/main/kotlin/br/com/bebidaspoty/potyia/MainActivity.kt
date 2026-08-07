@@ -1,4 +1,4 @@
-package com.example.poty_ia_app
+package br.com.bebidaspoty.potyia
 
 import io.flutter.embedding.android.FlutterActivity
 
