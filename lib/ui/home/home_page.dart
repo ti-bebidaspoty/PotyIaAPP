@@ -12,7 +12,23 @@ class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   Future<void> _logout() async {
+    // Primeiro remove os dados de autenticação/preferências mantidos pelo app.
     await Prefs.deleteAll();
+
+    try {
+      // A implementação é específica por plataforma:
+      // - Web: limpa storage, cookies acessíveis, Service Workers e Cache Storage.
+      // - Mobile: não faz nada aqui, pois a sessão da WebView já é
+      //   tratada pelo SuriView mobile.
+      await SuriSessionController.limparDadosNoLogout();
+    } catch (erro, stackTrace) {
+      // A limpeza complementar nunca deve impedir o logout do usuário.
+      debugPrint(
+        'Falha ao limpar dados da plataforma durante o logout: $erro',
+      );
+      debugPrintStack(stackTrace: stackTrace);
+    }
+
     Get.offAllNamed(AppRoutes.login);
   }
 
@@ -846,11 +862,44 @@ class _VideoErrorState extends StatelessWidget {
   }
 }
 
-class SuriChatPage extends StatelessWidget {
+class SuriChatPage extends StatefulWidget {
   const SuriChatPage({super.key});
 
-  void _fecharChat() {
-    Get.back();
+  @override
+  State<SuriChatPage> createState() => _SuriChatPageState();
+}
+
+class _SuriChatPageState extends State<SuriChatPage> {
+  final SuriSessionController _suriSessionController =
+  SuriSessionController();
+
+  bool _fechando = false;
+
+  Future<void> _fecharChat() async {
+    if (_fechando) {
+      return;
+    }
+
+    setState(() {
+      _fechando = true;
+    });
+
+    try {
+      await _suriSessionController.limparSessao();
+    } catch (erro, stackTrace) {
+      // Mesmo se a limpeza falhar, o usuário deve conseguir fechar a Paty.
+      debugPrint(
+        'Erro ao limpar a sessão da Paty no fechamento: $erro',
+      );
+
+      debugPrintStack(
+        stackTrace: stackTrace,
+      );
+    } finally {
+      if (mounted) {
+        Get.back();
+      }
+    }
   }
 
   @override
@@ -982,7 +1031,7 @@ class SuriChatPage extends StatelessWidget {
           actions: [
             IconButton(
               tooltip: 'Fechar atendimento',
-              onPressed: _fecharChat,
+              onPressed: _fechando ? null : _fecharChat,
               iconSize: 27,
               color: Colors.white,
               icon: const Icon(
@@ -993,8 +1042,8 @@ class SuriChatPage extends StatelessWidget {
           ],
         ),
       ),
-      body: const DecoratedBox(
-        decoration: BoxDecoration(
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -1005,7 +1054,9 @@ class SuriChatPage extends StatelessWidget {
             ],
           ),
         ),
-        child: SuriView(),
+        child: SuriView(
+          sessionController: _suriSessionController,
+        ),
       ),
     );
   }

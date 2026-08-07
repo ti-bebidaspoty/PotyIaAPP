@@ -3,8 +3,164 @@ import 'dart:js_interop';
 import 'package:flutter/material.dart';
 import 'package:web/web.dart' as web;
 
+class SuriSessionController {
+  Future<void> Function()? _limparSessao;
+
+  /// Limpeza agressiva usada SOMENTE no logout da versão Web.
+  ///
+  /// Remove os dados que o JavaScript do domínio atual tem permissão
+  /// para apagar: localStorage, sessionStorage, cookies não-HttpOnly
+  /// visíveis ao document.cookie e entradas do Cache Storage.
+  ///
+  /// Cookies HttpOnly, cookies de terceiros e o cache HTTP geral do
+  /// navegador não podem ser apagados por uma aplicação Web comum.
+  static Future<void> limparDadosNoLogout() async {
+    debugPrint(
+      'Logout Web: iniciando limpeza de storage, cookies e caches...',
+    );
+
+    _limparWebStorage();
+    _limparCookiesDoDominioAtual();
+    await _desregistrarServiceWorkers();
+    await _limparCacheStorage();
+
+    debugPrint(
+      'Logout Web: limpeza dos dados acessíveis pelo navegador concluída.',
+    );
+  }
+
+  static void _limparWebStorage() {
+    try {
+      web.window.localStorage.clear();
+      debugPrint('Logout Web: localStorage limpo.');
+    } catch (erro) {
+      debugPrint('Logout Web: não foi possível limpar localStorage: $erro');
+    }
+
+    try {
+      web.window.sessionStorage.clear();
+      debugPrint('Logout Web: sessionStorage limpo.');
+    } catch (erro) {
+      debugPrint('Logout Web: não foi possível limpar sessionStorage: $erro');
+    }
+  }
+
+  static void _limparCookiesDoDominioAtual() {
+    try {
+      final cookies = web.document.cookie;
+
+      if (cookies.trim().isEmpty) {
+        debugPrint('Logout Web: nenhum cookie acessível encontrado.');
+        return;
+      }
+
+      final hostname = web.window.location.hostname;
+      final dominios = <String>{hostname};
+      final partesDominio = hostname.split('.');
+
+      // Também tenta remover cookies criados em domínios-pai, por exemplo
+      // .bebidaspoty.com.br, quando o navegador permitir.
+      if (partesDominio.length >= 3) {
+        for (var i = 1; i < partesDominio.length - 1; i++) {
+          dominios.add('.${partesDominio.sublist(i).join('.')}');
+        }
+      }
+
+      for (final cookie in cookies.split(';')) {
+        final nome = cookie.split('=').first.trim();
+
+        if (nome.isEmpty) {
+          continue;
+        }
+
+        const expirado =
+            'expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; path=/';
+
+        // Cookie host-only.
+        web.document.cookie = '$nome=; $expirado';
+
+        // Cookies que possam ter sido criados com atributo Domain.
+        for (final dominio in dominios) {
+          if (dominio.isEmpty) {
+            continue;
+          }
+
+          web.document.cookie =
+          '$nome=; $expirado; domain=$dominio';
+        }
+      }
+
+      debugPrint('Logout Web: cookies acessíveis foram expirados.');
+    } catch (erro) {
+      debugPrint('Logout Web: não foi possível limpar cookies: $erro');
+    }
+  }
+
+  static Future<void> _desregistrarServiceWorkers() async {
+    try {
+      final registrosJs =
+      await web.window.navigator.serviceWorker.getRegistrations().toDart;
+      final registros = registrosJs.toDart;
+
+      for (final registro in registros) {
+        await registro.unregister().toDart;
+      }
+
+      debugPrint(
+        'Logout Web: ${registros.length} Service Worker(s) desregistrado(s).',
+      );
+    } catch (erro) {
+      // Alguns navegadores/contextos podem não disponibilizar Service Worker.
+      debugPrint(
+        'Logout Web: não foi possível desregistrar Service Workers: $erro',
+      );
+    }
+  }
+
+  static Future<void> _limparCacheStorage() async {
+    try {
+      final nomesJs = await web.window.caches.keys().toDart;
+      final nomes = nomesJs.toDart;
+
+      for (final nomeJs in nomes) {
+        final nome = nomeJs.toDart;
+        await web.window.caches.delete(nome).toDart;
+      }
+
+      debugPrint(
+        'Logout Web: Cache Storage limpo (${nomes.length} cache(s)).',
+      );
+    } catch (erro) {
+      // Cache Storage pode não estar disponível, por exemplo em origem não
+      // segura ou em alguns modos privados do navegador.
+      debugPrint('Logout Web: não foi possível limpar Cache Storage: $erro');
+    }
+  }
+
+  void _attach(Future<void> Function() limparSessao) {
+    _limparSessao = limparSessao;
+  }
+
+  void _detach() {
+    _limparSessao = null;
+  }
+
+  Future<void> limparSessao() async {
+    final limpar = _limparSessao;
+
+    if (limpar != null) {
+      await limpar();
+    }
+  }
+}
+
 class SuriView extends StatefulWidget {
-  const SuriView({super.key});
+  final SuriSessionController? sessionController;
+
+  const SuriView({
+    super.key,
+    this.sessionController,
+  });
 
   @override
   State<SuriView> createState() => _SuriViewState();
@@ -28,7 +184,18 @@ class _SuriViewState extends State<SuriView> {
   @override
   void initState() {
     super.initState();
+    widget.sessionController?._attach(_encerrarSessaoDaSuri);
     _registrarListener();
+  }
+
+  @override
+  void didUpdateWidget(covariant SuriView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.sessionController != widget.sessionController) {
+      oldWidget.sessionController?._detach();
+      widget.sessionController?._attach(_encerrarSessaoDaSuri);
+    }
   }
 
   void _registrarListener() {
@@ -208,6 +375,32 @@ class _SuriViewState extends State<SuriView> {
     );
   }
 
+  Future<void> _encerrarSessaoDaSuri() async {
+    _timeout?.cancel();
+    _fallbackTimer?.cancel();
+
+    final iframe = _iframe;
+
+    if (iframe != null) {
+      // Interrompe imediatamente a instância atual do chat.
+      //
+      // Na Web não apagamos localStorage/cookies globais do navegador,
+      // porque eles pertencem ao mesmo domínio do aplicativo e a limpeza
+      // indiscriminada poderia remover dados de autenticação/preferências.
+      iframe.setAttribute('src', 'about:blank');
+    }
+
+    _iframe = null;
+
+    // Entrega um ciclo ao navegador para efetivar a navegação para about:blank
+    // antes de a rota Flutter ser removida.
+    await Future<void>.delayed(Duration.zero);
+
+    debugPrint(
+      'Instância atual da Suri encerrada na Web.',
+    );
+  }
+
   void _tentarNovamente() {
     _timeout?.cancel();
     _fallbackTimer?.cancel();
@@ -225,6 +418,8 @@ class _SuriViewState extends State<SuriView> {
 
   @override
   void dispose() {
+    widget.sessionController?._detach();
+
     _timeout?.cancel();
     _fallbackTimer?.cancel();
 
@@ -232,6 +427,12 @@ class _SuriViewState extends State<SuriView> {
       'message',
       _messageListener,
     );
+
+    final iframe = _iframe;
+
+    if (iframe != null) {
+      iframe.setAttribute('src', 'about:blank');
+    }
 
     _iframe = null;
 

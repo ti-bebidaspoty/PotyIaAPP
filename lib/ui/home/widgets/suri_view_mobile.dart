@@ -1,8 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+class SuriSessionController {
+  Future<void> Function()? _limparSessao;
+
+  /// Mantém a mesma API pública da implementação Web para que a Home
+  /// compile nas duas plataformas. No mobile, a limpeza da sessão da SURI
+  /// já é feita diretamente pela WebView ao abrir/fechar a Paty.
+  static Future<void> limparDadosNoLogout() async {
+    debugPrint(
+      'Logout mobile: limpeza Web específica não se aplica.',
+    );
+  }
+
+  void _attach(Future<void> Function() limparSessao) {
+    _limparSessao = limparSessao;
+  }
+
+  void _detach() {
+    _limparSessao = null;
+  }
+
+  Future<void> limparSessao() async {
+    final limpar = _limparSessao;
+
+    if (limpar != null) {
+      await limpar();
+    }
+  }
+}
+
 class SuriView extends StatefulWidget {
-  const SuriView({super.key});
+  final SuriSessionController? sessionController;
+
+  const SuriView({
+    super.key,
+    this.sessionController,
+  });
 
   @override
   State<SuriView> createState() => _SuriViewState();
@@ -14,6 +48,14 @@ class _SuriViewState extends State<SuriView> {
 
   late final WebViewController _controller;
 
+  final WebViewCookieManager _cookieManager = WebViewCookieManager();
+
+  // Esta flag pertence somente a ESTA tela da Paty.
+  // Ao fechar a Paty pelo X, o SuriView é destruído.
+  // Na próxima abertura, um novo SuriView é criado e a flag volta para false,
+  // fazendo cookies/cache/localStorage serem limpos antes de carregar o chat.
+  bool _sessaoPreparadaNestaTela = false;
+
   bool _carregando = true;
   bool _chatPronto = false;
 
@@ -24,7 +66,24 @@ class _SuriViewState extends State<SuriView> {
   @override
   void initState() {
     super.initState();
+    widget.sessionController?._attach(_limparSessaoCompleta);
     _configurarWebView();
+  }
+
+  @override
+  void didUpdateWidget(covariant SuriView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.sessionController != widget.sessionController) {
+      oldWidget.sessionController?._detach();
+      widget.sessionController?._attach(_limparSessaoCompleta);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.sessionController?._detach();
+    super.dispose();
   }
 
   void _configurarWebView() {
@@ -136,15 +195,64 @@ class _SuriViewState extends State<SuriView> {
     }
   }
 
-  Future<void> _abrirSuri() async {
-    final uri = Uri.parse(
-      '$_suriUrl'
-          '?mobile=true'
-          '&platform=mobile'
-          '&v=${DateTime.now().millisecondsSinceEpoch}',
+  Future<void> _limparSessaoCompleta() async {
+    debugPrint(
+      'Limpando cookies, cache e armazenamento da Paty...',
     );
 
     try {
+      final tinhaCookies = await _cookieManager.clearCookies();
+
+      await _controller.clearCache();
+      await _controller.clearLocalStorage();
+
+      debugPrint(
+        'Sessão da Paty limpa. '
+            'Cookies removidos: $tinhaCookies',
+      );
+    } catch (erro, stackTrace) {
+      debugPrint(
+        'Falha ao limpar completamente a sessão da Paty: $erro',
+      );
+
+      debugPrintStack(
+        stackTrace: stackTrace,
+      );
+
+      rethrow;
+    }
+  }
+
+  Future<void> _prepararNovaSessaoDaSuri() async {
+    if (_sessaoPreparadaNestaTela) {
+      return;
+    }
+
+    debugPrint(
+      'Nova abertura da Paty: limpando sessão anterior...',
+    );
+
+    try {
+      await _limparSessaoCompleta();
+    } catch (_) {
+      // A falha de limpeza não impede a abertura do chat.
+      // O parâmetro v=... também evita reaproveitar o HTML em cache.
+    } finally {
+      _sessaoPreparadaNestaTela = true;
+    }
+  }
+
+  Future<void> _abrirSuri() async {
+    try {
+      await _prepararNovaSessaoDaSuri();
+
+      final uri = Uri.parse(
+        '$_suriUrl'
+            '?mobile=true'
+            '&platform=mobile'
+            '&v=${DateTime.now().millisecondsSinceEpoch}',
+      );
+
       await _controller.loadRequest(uri);
     } catch (erro, stackTrace) {
       debugPrint(
