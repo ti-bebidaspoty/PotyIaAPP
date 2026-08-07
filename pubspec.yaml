@@ -41,6 +41,7 @@ dependencies:
   web: ^1.1.1
   webview_flutter: ^4.14.1
   video_player: ^2.11.1
+  package_rename: ^1.10.1
 
 dev_dependencies:
   flutter_test:
@@ -147,3 +148,16 @@ flutter_launcher_icons:
     image_path: assets/images/paty.png
     background_color: "#0F723C"
     theme_color: "#0F723C"
+
+package_rename_config:
+  android:
+    app_name: "Poty IA" # Display name
+    package_name: "br.com.bebidaspoty.potyia" # Package name
+    lang: "kotlin" # Optional: "kotlin" (default) or "java"
+
+  ios:
+    app_name: "Poty IA" # Display name
+    bundle_name: "Poty IA" # Bundle name
+    package_name: "br.com.bebidaspoty.potyia" # Product Bundle Identifier
+
+#dart run package_rename
