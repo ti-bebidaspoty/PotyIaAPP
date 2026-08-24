@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class SuriSessionController {
   Future<void> Function()? _limparSessao;
@@ -86,8 +89,44 @@ class _SuriViewState extends State<SuriView> {
     super.dispose();
   }
 
-  void _configurarWebView() {
-    _controller = WebViewController()
+  Future<void> _configurarWebView() async {
+    _controller = WebViewController(
+      onPermissionRequest:
+      defaultTargetPlatform == TargetPlatform.iOS
+          ? (WebViewPermissionRequest request) async {
+        final tiposSolicitados = request.types;
+
+        debugPrint(
+          'Permissão solicitada pela WebView iOS: '
+              '${tiposSolicitados.map((tipo) => tipo.name).join(', ')}',
+        );
+
+        final solicitacaoValida =
+            tiposSolicitados.isNotEmpty &&
+                tiposSolicitados.every(
+                      (tipo) =>
+                  tipo ==
+                      WebViewPermissionResourceType.camera ||
+                      tipo ==
+                          WebViewPermissionResourceType.microphone,
+                );
+
+        if (solicitacaoValida) {
+          debugPrint(
+            'Permissão da WebView concedida no iOS.',
+          );
+
+          await request.grant();
+        } else {
+          debugPrint(
+            'Permissão desconhecida da WebView negada no iOS.',
+          );
+
+          await request.deny();
+        }
+      }
+          : null,
+    )
       ..setJavaScriptMode(
         JavaScriptMode.unrestricted,
       )
@@ -116,6 +155,7 @@ class _SuriViewState extends State<SuriView> {
               'Iniciando página da Suri: $url',
             );
           },
+
           onProgress: (int progress) {
             if (!mounted) {
               return;
@@ -125,11 +165,13 @@ class _SuriViewState extends State<SuriView> {
               _progresso = progress;
             });
           },
+
           onPageFinished: (String url) {
             debugPrint(
               'Página HTML da Suri carregada: $url',
             );
           },
+
           onWebResourceError: (
               WebResourceError error,
               ) {
@@ -150,6 +192,7 @@ class _SuriViewState extends State<SuriView> {
                   '${error.description}',
             );
           },
+
           onNavigationRequest: (
               NavigationRequest request,
               ) {
@@ -163,7 +206,89 @@ class _SuriViewState extends State<SuriView> {
         ),
       );
 
-    _abrirSuri();
+    /*
+   * ============================================================
+   * GEOLOCALIZAÇÃO NO ANDROID
+   * ============================================================
+   */
+
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        _controller.platform is AndroidWebViewController) {
+      final androidController =
+      _controller.platform as AndroidWebViewController;
+
+      // Habilita a API JavaScript de geolocalização no WebView.
+      await androidController.setGeolocationEnabled(true);
+
+      // Trata as solicitações de localização feitas pela página/SURI.
+      await androidController
+          .setGeolocationPermissionsPromptCallbacks(
+        onShowPrompt: (
+            GeolocationPermissionsRequestParams request,
+            ) async {
+          debugPrint(
+            'Geolocalização solicitada por: ${request.origin}',
+          );
+
+          final uri = Uri.tryParse(request.origin);
+
+          final host =
+              uri?.host.toLowerCase() ?? '';
+
+          /*
+         * Só permitimos as origens utilizadas pelo Poty IA/SURI.
+         */
+          final origemPermitida =
+              host == 'app.talkjs.com' ||
+                  host.endsWith('.talkjs.com') ||
+                  host == 'webchat.chatbotmaker.io' ||
+                  host.endsWith('.chatbotmaker.io') ||
+                  host == 'potyiasuri.bebidaspoty.com.br';
+
+          if (!origemPermitida) {
+            debugPrint(
+              'Geolocalização NEGADA para origem não autorizada: '
+                  '${request.origin}',
+            );
+
+            return const GeolocationPermissionsResponse(
+              allow: false,
+              retain: false,
+            );
+          }
+
+          /*
+         * Verifica a permissão do próprio Android.
+         */
+          var status =
+          await Permission.location.status;
+
+          if (!status.isGranted) {
+            debugPrint(
+              'Solicitando permissão de localização ao usuário...',
+            );
+
+            status =
+            await Permission.location.request();
+          }
+
+          final permitido = status.isGranted;
+
+          debugPrint(
+            permitido
+                ? 'Localização permitida para ${request.origin}'
+                : 'Localização negada pelo usuário.',
+          );
+
+          return GeolocationPermissionsResponse(
+            allow: permitido,
+            retain: permitido,
+          );
+        },
+      );
+    }
+
+    await _abrirSuri();
   }
 
   void _receberMensagemJavaScript(
