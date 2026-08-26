@@ -44,17 +44,21 @@
     <!-- PERMISSÕES -->
     <!-- ====================================================== -->
 
+    <!-- CÂMERA -->
     <key>NSCameraUsageDescription</key>
-    <string>O Poty IA utiliza a câmera para permitir o envio de imagens ao assistente.</string>
+    <string>O Poty IA utiliza a câmera somente quando você escolhe tirar uma foto para enviar ao assistente, por exemplo, para fazer uma pergunta sobre uma imagem.</string>
 
+    <!-- MICROFONE -->
     <key>NSMicrophoneUsageDescription</key>
-    <string>O Poty IA utiliza o microfone para permitir interações por voz com o assistente.</string>
+    <string>O Poty IA utiliza o microfone somente quando você escolhe gravar um áudio para enviar ao assistente, como alternativa à digitação da mensagem.</string>
 
+    <!-- LOCALIZAÇÃO -->
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>O Poty IA utiliza sua localização para fornecer funcionalidades baseadas em localização.</string>
+    <string>O Poty IA utiliza sua localização somente quando você escolhe compartilhá-la com o assistente, por exemplo, para perguntar sobre locais, serviços ou informações próximas de você.</string>
 
+    <!-- FOTOS -->
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>O Poty IA utiliza sua biblioteca de fotos para permitir o envio de imagens ao assistente.</string>
+    <string>O Poty IA acessa sua biblioteca de fotos somente quando você escolhe uma imagem para enviar ao assistente, por exemplo, para fazer uma pergunta sobre uma foto existente.</string>
 
     <!-- ====================================================== -->
     <!-- SCENE -->
