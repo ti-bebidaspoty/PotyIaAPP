@@ -2,7 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:poty_ia_app/routes/app_routes.dart';
+import 'package:poty_ia_app/ui/core/formatters/cpf_input_formatter.dart';
 import 'package:poty_ia_app/ui/login/login_controller.dart';
 import 'package:video_player/video_player.dart';
 
@@ -27,9 +30,7 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
 
-    _videoController = VideoPlayerController.asset(
-      'assets/videos/paty.mp4',
-    );
+    _videoController = VideoPlayerController.asset('assets/videos/paty.mp4');
 
     _inicializarVideo();
   }
@@ -66,8 +67,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _enviarLogin() async {
     FocusManager.instance.primaryFocus?.unfocus();
 
-    final formularioValido =
-        _formKey.currentState?.validate() ?? false;
+    final formularioValido = _formKey.currentState?.validate() ?? false;
 
     if (!formularioValido) {
       return;
@@ -84,10 +84,7 @@ class _LoginPageState extends State<LoginPage> {
     OutlineInputBorder border(Color color, double width) {
       return OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: BorderSide(
-          color: color,
-          width: width,
-        ),
+        borderSide: BorderSide(color: color, width: width),
       );
     }
 
@@ -99,15 +96,8 @@ class _LoginPageState extends State<LoginPage> {
       ),
       filled: true,
       fillColor: _LoginColors.fieldSurface,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 18,
-      ),
-      prefixIcon: Icon(
-        icon,
-        color: _LoginColors.brandGreen,
-        size: 21,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      prefixIcon: Icon(icon, color: _LoginColors.brandGreen, size: 21),
       suffixIcon: suffixIcon,
       border: border(_LoginColors.fieldBorder, 1),
       enabledBorder: border(_LoginColors.fieldBorder, 1.2),
@@ -121,10 +111,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _labelCampo(
-      BuildContext context,
-      String texto,
-      ) {
+  Widget _labelCampo(BuildContext context, String texto) {
     return Row(
       children: [
         Text(
@@ -146,9 +133,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _conteudoVideo({
-    required BoxFit fit,
-  }) {
+  Widget _conteudoVideo({required BoxFit fit}) {
     if (_erroNoVideo) {
       return const ColoredBox(
         color: _LoginColors.videoBackground,
@@ -162,8 +147,7 @@ class _LoginPageState extends State<LoginPage> {
       );
     }
 
-    if (!_videoInicializado ||
-        !_videoController.value.isInitialized) {
+    if (!_videoInicializado || !_videoController.value.isInitialized) {
       return const ColoredBox(
         color: _LoginColors.videoBackground,
         child: Center(
@@ -198,9 +182,7 @@ class _LoginPageState extends State<LoginPage> {
       decoration: BoxDecoration(
         color: _LoginColors.videoBackground,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.12),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.25),
@@ -213,9 +195,7 @@ class _LoginPageState extends State<LoginPage> {
         borderRadius: BorderRadius.circular(23),
         child: AspectRatio(
           aspectRatio: 16 / 9,
-          child: _conteudoVideo(
-            fit: BoxFit.cover,
-          ),
+          child: _conteudoVideo(fit: BoxFit.cover),
         ),
       ),
     );
@@ -227,10 +207,7 @@ class _LoginPageState extends State<LoginPage> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            _LoginColors.videoPanelTop,
-            _LoginColors.videoPanelBottom,
-          ],
+          colors: [_LoginColors.videoPanelTop, _LoginColors.videoPanelBottom],
         ),
       ),
       child: Stack(
@@ -239,58 +216,42 @@ class _LoginPageState extends State<LoginPage> {
           const _VideoPanelArtwork(),
           Padding(
             padding: const EdgeInsets.all(24),
-            child: Center(
-              child: AspectRatio(
-                aspectRatio:
-                _videoController.value.isInitialized
-                    ? _videoController.value.aspectRatio
-                    : 16 / 9,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: _LoginColors.videoBackground,
-                    borderRadius: BorderRadius.circular(26),
-                    border: Border.all(
-                      color: Colors.white.withValues(
-                        alpha: 0.14,
-                      ),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(
-                          alpha: 0.34,
-                        ),
-                        blurRadius: 40,
-                        offset: const Offset(0, 20),
-                      ),
-                    ],
+            child: Container(
+              decoration: BoxDecoration(
+                color: _LoginColors.videoBackground,
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.34),
+                    blurRadius: 40,
+                    offset: const Offset(0, 20),
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(25),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        _conteudoVideo(
-                          fit: BoxFit.cover,
-                        ),
-                        const IgnorePointer(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Color(0x00000000),
-                                  Color(0x05000000),
-                                  Color(0x24000000),
-                                ],
-                                stops: [0, 0.70, 1],
-                              ),
-                            ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(25),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _conteudoVideo(fit: BoxFit.cover),
+                    const IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Color(0x00000000),
+                              Color(0x05000000),
+                              Color(0x24000000),
+                            ],
+                            stops: [0, 0.70, 1],
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
@@ -310,10 +271,7 @@ class _LoginPageState extends State<LoginPage> {
           decoration: BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
-            border: Border.all(
-              color: _LoginColors.logoBorder,
-              width: 1.5,
-            ),
+            border: Border.all(color: _LoginColors.logoBorder, width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.10),
@@ -327,11 +285,7 @@ class _LoginPageState extends State<LoginPage> {
               'assets/images/poty.png',
               fit: BoxFit.contain,
               filterQuality: FilterQuality.high,
-              errorBuilder: (
-                  context,
-                  error,
-                  stackTrace,
-                  ) {
+              errorBuilder: (context, error, stackTrace) {
                 return const Icon(
                   Icons.business_rounded,
                   color: _LoginColors.brandGreen,
@@ -358,10 +312,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildFormulario(
-      BuildContext context, {
-        bool webDesktop = false,
-      }) {
+  Widget _buildFormulario(BuildContext context, {bool webDesktop = false}) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(
@@ -373,14 +324,10 @@ class _LoginPageState extends State<LoginPage> {
       decoration: BoxDecoration(
         color: _LoginColors.formCard,
         borderRadius: BorderRadius.circular(26),
-        border: Border.all(
-          color: _LoginColors.cardBorder,
-        ),
+        border: Border.all(color: _LoginColors.cardBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(
-              alpha: webDesktop ? 0.12 : 0.18,
-            ),
+            color: Colors.black.withValues(alpha: webDesktop ? 0.12 : 0.18),
             blurRadius: webDesktop ? 28 : 32,
             offset: const Offset(0, 16),
           ),
@@ -394,19 +341,17 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               _buildCabecalhoLogin(context),
               SizedBox(height: webDesktop ? 32 : 28),
-              _labelCampo(context, 'Usuário'),
+              _labelCampo(context, 'CPF'),
               const SizedBox(height: 8),
               TextFormField(
-                controller: controller.usuarioController,
-                validator: controller.validarUsuario,
+                controller: controller.cpfController,
+                validator: controller.validarCpf,
                 autocorrect: false,
                 enableSuggestions: false,
                 textCapitalization: TextCapitalization.none,
-                keyboardType: TextInputType.emailAddress,
-                autofillHints: const [
-                  AutofillHints.username,
-                  AutofillHints.email,
-                ],
+                keyboardType: TextInputType.number,
+                inputFormatters: const [CpfInputFormatter()],
+                autofillHints: const [AutofillHints.username],
                 textInputAction: TextInputAction.next,
                 onFieldSubmitted: (_) {
                   FocusScope.of(context).nextFocus();
@@ -417,77 +362,50 @@ class _LoginPageState extends State<LoginPage> {
                   fontWeight: FontWeight.w500,
                 ),
                 decoration: _decorationCampo(
-                  hint: 'Digite seu usuário',
+                  hint: 'Digite seu CPF',
                   icon: Icons.person_outline,
                 ),
               ),
               const SizedBox(height: 20),
               _labelCampo(context, 'Senha'),
               const SizedBox(height: 8),
-              Obx(
-                    () => TextFormField(
-                  controller: controller.senhaController,
-                  validator: controller.validarSenha,
-                  obscureText: controller.senhaOculta.value,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  autofillHints: const [
-                    AutofillHints.password,
-                  ],
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) {
-                    _enviarLogin();
-                  },
-                  style: const TextStyle(
-                    color: _LoginColors.fieldText,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  decoration: _decorationCampo(
-                    hint: 'Digite sua senha',
-                    icon: Icons.lock_outline_rounded,
-                    suffixIcon: IconButton(
-                      tooltip: controller.senhaOculta.value
-                          ? 'Mostrar senha'
-                          : 'Ocultar senha',
-                      onPressed:
-                      controller.alterarVisibilidadeSenha,
-                      icon: AnimatedSwitcher(
-                        duration: const Duration(
-                          milliseconds: 180,
-                        ),
-                        child: Icon(
-                          controller.senhaOculta.value
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                          key: ValueKey(
-                            controller.senhaOculta.value,
-                          ),
-                          color: _LoginColors.fieldIcon,
-                        ),
-                      ),
-                    ),
-                  ),
+              TextFormField(
+                controller: controller.nascimentoController,
+                validator: controller.validarNascimento,
+                autocorrect: false,
+                enableSuggestions: false,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(8),
+                ],
+                autofillHints: const [AutofillHints.birthday],
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) {
+                  _enviarLogin();
+                },
+                style: const TextStyle(
+                  color: _LoginColors.fieldText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+                decoration: _decorationCampo(
+                  hint: 'Digite sua Senha',
+                  icon: Icons.lock,
                 ),
               ),
               SizedBox(height: webDesktop ? 30 : 28),
               Obx(
-                    () => SizedBox(
+                () => SizedBox(
                   height: 56,
                   child: FilledButton(
-                    onPressed: controller.isLoading.value
-                        ? null
-                        : _enviarLogin,
+                    onPressed: controller.isLoading.value ? null : _enviarLogin,
                     style: FilledButton.styleFrom(
-                      backgroundColor:
-                      _LoginColors.brandGreen,
+                      backgroundColor: _LoginColors.brandGreen,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor:
-                      _LoginColors.brandGreen.withValues(
-                        alpha: 0.45,
-                      ),
-                      disabledForegroundColor:
-                      Colors.white.withValues(
+                      disabledBackgroundColor: _LoginColors.brandGreen
+                          .withValues(alpha: 0.45),
+                      disabledForegroundColor: Colors.white.withValues(
                         alpha: 0.75,
                       ),
                       shape: RoundedRectangleBorder(
@@ -496,41 +414,40 @@ class _LoginPageState extends State<LoginPage> {
                       elevation: 0,
                     ),
                     child: AnimatedSwitcher(
-                      duration: const Duration(
-                        milliseconds: 180,
-                      ),
+                      duration: const Duration(milliseconds: 180),
                       child: controller.isLoading.value
                           ? const SizedBox(
-                        key: ValueKey('loading'),
-                        width: 23,
-                        height: 23,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.3,
-                          color: Colors.white,
-                        ),
-                      )
+                              key: ValueKey('loading'),
+                              width: 23,
+                              height: 23,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.3,
+                                color: Colors.white,
+                              ),
+                            )
                           : const Row(
-                        key: ValueKey('button'),
-                        mainAxisAlignment:
-                        MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Entrar',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
+                              key: ValueKey('button'),
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Entrar',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                SizedBox(width: 10),
+                                Icon(Icons.arrow_forward_rounded, size: 20),
+                              ],
                             ),
-                          ),
-                          SizedBox(width: 10),
-                          Icon(
-                            Icons.arrow_forward_rounded,
-                            size: 20,
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => Get.offNamed(AppRoutes.cadastro),
+                child: const Text('Ainda nao possui cadastro? Cadastre-se'),
               ),
             ],
           ),
@@ -540,9 +457,9 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildLayoutWebDesktop(
-      BuildContext context,
-      BoxConstraints constraints,
-      ) {
+    BuildContext context,
+    BoxConstraints constraints,
+  ) {
     const larguraMaximaPainel = 1440.0;
     const paddingExterno = 32.0;
     const paddingInternoVideo = 24.0;
@@ -554,14 +471,10 @@ class _LoginPageState extends State<LoginPage> {
       constraints.maxWidth - (paddingExterno * 2),
     );
 
-    final larguraPainel = math.min(
-      larguraDisponivel,
-      larguraMaximaPainel,
-    );
+    final larguraPainel = math.min(larguraDisponivel, larguraMaximaPainel);
 
     final larguraColunaVideo =
-        larguraPainel *
-            (flexVideo / (flexVideo + flexFormulario));
+        larguraPainel * (flexVideo / (flexVideo + flexFormulario));
 
     final larguraUtilVideo = math.max(
       0.0,
@@ -569,37 +482,25 @@ class _LoginPageState extends State<LoginPage> {
     );
 
     final proporcaoVideo =
-    _videoController.value.isInitialized &&
-        _videoController.value.aspectRatio > 0
+        _videoController.value.isInitialized &&
+            _videoController.value.aspectRatio > 0
         ? _videoController.value.aspectRatio
         : 16 / 9;
 
     final alturaIdealPeloVideo =
-        (larguraUtilVideo / proporcaoVideo) +
-            (paddingInternoVideo * 2);
+        (larguraUtilVideo / proporcaoVideo) + (paddingInternoVideo * 2);
 
-    // Garante espaço suficiente para o formulário.
-    // Em telas largas, a altura passa a acompanhar exatamente
-    // a proporção do vídeo, eliminando o espaço vazio vertical.
-    final alturaPainel = math.max(
-      520.0,
-      alturaIdealPeloVideo,
-    );
+    final alturaPainel = math.max(520.0, alturaIdealPeloVideo);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          minHeight: math.max(
-            0,
-            constraints.maxHeight - 64,
-          ),
+          minHeight: math.max(0, constraints.maxHeight - 64),
         ),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: 1440,
-            ),
+            constraints: const BoxConstraints(maxWidth: 1440),
             child: SizedBox(
               height: alturaPainel,
               child: ClipRRect(
@@ -609,15 +510,11 @@ class _LoginPageState extends State<LoginPage> {
                     color: _LoginColors.desktopShell,
                     borderRadius: BorderRadius.circular(34),
                     border: Border.all(
-                      color: Colors.white.withValues(
-                        alpha: 0.15,
-                      ),
+                      color: Colors.white.withValues(alpha: 0.15),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(
-                          alpha: 0.28,
-                        ),
+                        color: Colors.black.withValues(alpha: 0.28),
                         blurRadius: 54,
                         offset: const Offset(0, 26),
                       ),
@@ -625,23 +522,18 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   child: Row(
                     children: [
-                      Expanded(
-                        flex: 14,
-                        child: _buildPainelVideoWeb(),
-                      ),
+                      Expanded(flex: 14, child: _buildPainelVideoWeb()),
                       Expanded(
                         flex: 8,
                         child: DecoratedBox(
                           decoration: const BoxDecoration(
-                            color:
-                            _LoginColors.desktopAccessArea,
+                            color: _LoginColors.desktopAccessArea,
                           ),
                           child: Center(
                             child: SingleChildScrollView(
                               padding: const EdgeInsets.all(38),
                               child: ConstrainedBox(
-                                constraints:
-                                const BoxConstraints(
+                                constraints: const BoxConstraints(
                                   maxWidth: 440,
                                 ),
                                 child: _buildFormulario(
@@ -665,20 +557,17 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildLayoutCompacto(
-      BuildContext context,
-      BoxConstraints constraints,
-      ) {
+    BuildContext context,
+    BoxConstraints constraints,
+  ) {
     final telaPequena = constraints.maxWidth < 420;
 
-    final espacamentoHorizontal =
-    telaPequena ? 16.0 : 24.0;
+    final espacamentoHorizontal = telaPequena ? 16.0 : 24.0;
 
-    final espacamentoVertical =
-    constraints.maxHeight < 720 ? 16.0 : 28.0;
+    final espacamentoVertical = constraints.maxHeight < 720 ? 16.0 : 28.0;
 
     return SingleChildScrollView(
-      keyboardDismissBehavior:
-      ScrollViewKeyboardDismissBehavior.onDrag,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: EdgeInsets.symmetric(
         horizontal: espacamentoHorizontal,
         vertical: espacamentoVertical,
@@ -687,22 +576,17 @@ class _LoginPageState extends State<LoginPage> {
         constraints: BoxConstraints(
           minHeight: math.max(
             0,
-            constraints.maxHeight -
-                (espacamentoVertical * 2),
+            constraints.maxHeight - (espacamentoVertical * 2),
           ),
         ),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: 520,
-            ),
+            constraints: const BoxConstraints(maxWidth: 520),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildVideoCompacto(),
-                SizedBox(
-                  height: telaPequena ? 18 : 24,
-                ),
+                SizedBox(height: telaPequena ? 18 : 24),
                 _buildFormulario(context),
               ],
             ),
@@ -742,25 +626,15 @@ class _LoginPageState extends State<LoginPage> {
             const _BackgroundArtwork(),
             SafeArea(
               child: LayoutBuilder(
-                builder: (
-                    context,
-                    constraints,
-                    ) {
+                builder: (context, constraints) {
                   final usarLayoutWebDesktop =
-                      kIsWeb &&
-                          constraints.maxWidth >= 900;
+                      kIsWeb && constraints.maxWidth >= 900;
 
                   if (usarLayoutWebDesktop) {
-                    return _buildLayoutWebDesktop(
-                      context,
-                      constraints,
-                    );
+                    return _buildLayoutWebDesktop(context, constraints);
                   }
 
-                  return _buildLayoutCompacto(
-                    context,
-                    constraints,
-                  );
+                  return _buildLayoutCompacto(context, constraints);
                 },
               ),
             ),
@@ -787,9 +661,7 @@ class _BackgroundArtwork extends StatelessWidget {
               height: 520,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(
-                  alpha: 0.045,
-                ),
+                color: Colors.white.withValues(alpha: 0.045),
               ),
             ),
           ),
@@ -801,9 +673,7 @@ class _BackgroundArtwork extends StatelessWidget {
               height: 650,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _LoginColors.lime.withValues(
-                  alpha: 0.07,
-                ),
+                color: _LoginColors.lime.withValues(alpha: 0.07),
               ),
             ),
           ),
@@ -829,11 +699,7 @@ class _VideoPanelArtwork extends StatelessWidget {
               height: 400,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withValues(
-                    alpha: 0.08,
-                  ),
-                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
               ),
             ),
           ),
@@ -845,9 +711,7 @@ class _VideoPanelArtwork extends StatelessWidget {
               height: 460,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _LoginColors.lime.withValues(
-                  alpha: 0.055,
-                ),
+                color: _LoginColors.lime.withValues(alpha: 0.055),
               ),
             ),
           ),
@@ -882,7 +746,6 @@ abstract final class _LoginColors {
   static const fieldBorder = Color(0xFFB8C8B2);
   static const fieldText = Color(0xFF173020);
   static const fieldHint = Color(0xFF7B897B);
-  static const fieldIcon = Color(0xFF526453);
 
   static const logoBorder = Color(0xFFD1DDCB);
 

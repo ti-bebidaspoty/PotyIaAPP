@@ -13,127 +13,177 @@ class AuthService {
   AuthService({Dio? dio}) : _dio = dio ?? ApiService.dio;
 
   Future<LoginResponseModel> login({
-    required String usuario,
-    required String senha,
+
+    required String cpf,
+
+    required String dataNascimento,
+
   }) async {
+
+
     final request = LoginRequestModel(
-      usuario: usuario.trim(),
-      senha: senha,
+
+      cpf: cpf.replaceAll(
+          RegExp(r'[^0-9]'),
+          ''
+      ),
+
+      dataNascimento:
+      dataNascimento.replaceAll(
+          RegExp(r'[^0-9]'),
+          ''
+      ),
+
     );
+
 
     final payload = request.toJson();
 
-    if (kDebugMode) {
-      debugPrint('================ LOGIN ================');
+
+
+    if(kDebugMode){
+
       debugPrint(
-        'URL: ${ApiService.baseUrl}/Login',
+          '========== LOGIN =========='
       );
-      debugPrint('MÉTODO: POST');
-      debugPrint('USUÁRIO: ${payload['Usuario']}');
-      debugPrint('SENHA INFORMADA: ${senha.isNotEmpty}');
-      debugPrint('TAMANHO DA SENHA: ${senha.length}');
+
       debugPrint(
-        'JSON ENVIADO: ${jsonEncode({
-          'Usuario': payload['Usuario'],
-          'Senha': '***',
-        })}',
+          'URL: ${ApiService.baseUrl}/Autenticacao'
       );
-      debugPrint('=======================================');
+
+
+      debugPrint(
+          'CPF informado: '
+              '${request.cpf.length == 11}'
+      );
+
+
+      debugPrint(
+          'Senha informada: '
+              '${request.dataNascimento.isNotEmpty}'
+      );
+
+
+      debugPrint(
+          'JSON: ${jsonEncode({
+
+            'Usuario':request.cpf,
+
+            'Senha':'********'
+
+          })}'
+      );
+
+
     }
 
+
+
     try {
-      final response = await _dio.post<dynamic>(
+
+
+      final response =
+      await _dio.post<dynamic>(
+
         '/Autenticacao',
-        data: payload,
-        options: Options(
-          extra: {
-            'requiresAuth': false,
+
+        data:payload,
+
+        options:Options(
+
+          extra:{
+
+            'requiresAuth':false
+
           },
+
         ),
+
       );
 
-      if (kDebugMode) {
-        debugPrint('======== RESPOSTA DO LOGIN ========');
-        debugPrint('STATUS: ${response.statusCode}');
-        debugPrint(
-          'TIPO DO RETORNO: ${response.data.runtimeType}',
-        );
-        debugPrint(
-          'CABEÇALHOS: ${response.headers.map}',
-        );
-        debugPrint(
-          'RESPOSTA: ${_safeResponseForLog(response.data)}',
-        );
-        debugPrint('===================================');
-      }
 
-      final responseData = _convertResponseToMap(
+
+      final responseData =
+      _convertResponseToMap(
         response.data,
       );
 
+
+
       final loginResponse =
-      LoginResponseModel.fromJson(responseData);
+      LoginResponseModel.fromJson(
+        responseData,
+      );
 
-      if (loginResponse.accessToken.isEmpty) {
+
+
+      if(loginResponse.accessToken.isEmpty){
+
         throw const FormatException(
-          'A API respondeu, mas o campo AccessToken está vazio.',
+            'A API não retornou AccessToken.'
         );
+
       }
 
-      if (kDebugMode) {
-        debugPrint('AccessToken convertido com sucesso.');
-        debugPrint(
-          'Usuário retornado: ${loginResponse.usuario.nome}',
-        );
-      }
+
 
       await Prefs.saveString(
         'accessToken',
         loginResponse.accessToken,
       );
 
-      if (kDebugMode) {
-        debugPrint('AccessToken salvo no SharedPreferences.');
-      }
+
+
+      await Prefs.saveString(
+        'refreshToken',
+        loginResponse.refreshToken,
+      );
+
+
 
       await Prefs.saveString(
         'usuarioId',
         loginResponse.usuario.usuarioId,
       );
 
+
+
       await Prefs.saveString(
         'usuarioNome',
         loginResponse.usuario.nome,
       );
 
-      if (kDebugMode) {
-        debugPrint('Dados do usuário salvos.');
-        debugPrint('Login finalizado com sucesso.');
+
+
+      if(loginResponse.refreshTokenExpiraEm!=null){
+
+        await Prefs.saveString(
+
+          'refreshTokenExpiraEm',
+
+          loginResponse
+              .refreshTokenExpiraEm!
+              .toIso8601String(),
+
+        );
+
       }
+
+
 
       return loginResponse;
-    } on DioException catch (error, stackTrace) {
-      if (kDebugMode) {
-        debugPrint('======== ERRO DIO NO LOGIN ========');
-        debugPrint(
-          ApiService.getDetailedError(error),
-        );
-        debugPrintStack(stackTrace: stackTrace);
-        debugPrint('===================================');
-      }
 
-      rethrow;
-    } catch (error, stackTrace) {
-      if (kDebugMode) {
-        debugPrint('====== ERRO INTERNO NO LOGIN ======');
-        debugPrint('TIPO: ${error.runtimeType}');
-        debugPrint('ERRO: $error');
-        debugPrintStack(stackTrace: stackTrace);
-        debugPrint('===================================');
-      }
 
-      rethrow;
+
     }
+
+    catch(error){
+
+      rethrow;
+
+    }
+
+
   }
 
   Map<String, dynamic> _convertResponseToMap(

@@ -1,16 +1,17 @@
 class LoginRequestModel {
-  final String usuario;
-  final String senha;
+  final String cpf;
+  final String dataNascimento;
 
   const LoginRequestModel({
-    required this.usuario,
-    required this.senha,
+    required this.cpf,
+    required this.dataNascimento,
   });
+
 
   Map<String, dynamic> toJson() {
     return {
-      'Usuario': usuario,
-      'Senha': senha,
+      'CPF': cpf,
+      'Senha': dataNascimento,
     };
   }
 }

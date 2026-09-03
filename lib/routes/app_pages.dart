@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import 'package:poty_ia_app/ui/cadastro/cadastro_controller.dart';
+import 'package:poty_ia_app/ui/cadastro/cadastro_page.dart';
 import 'package:poty_ia_app/ui/home/home_page.dart';
 import 'package:poty_ia_app/ui/login/login_controller.dart';
 import 'package:poty_ia_app/ui/login/login_page.dart';
@@ -16,6 +18,13 @@ class AppPages {
     GetPage(
       name: AppRoutes.home,
       page: () => const HomePage(),
+    ),
+    GetPage(
+      name: AppRoutes.cadastro,
+      page: () => const CadastroPage(),
+      binding: BindingsBuilder(() {
+        Get.put(CadastroController());
+      }),
     ),
   ];
 }
